@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PerfilAcesso {
+  ADMIN
+  USUARIO
+}
+
+enum StatusProcesso {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDO
+  CANCELADO
+}
+
+model Usuario {
+  id           String       @id @default(cuid())
+  nome         String
+  email        String       @unique
+  senha        String
+  perfilAcesso PerfilAcesso @default(USUARIO)
+  ativo        Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("usuarios")
+}
+
+model Cliente {
+  id          String  @id @default(cuid())
+  nome        String
+  cpfCnpj     String  @unique
+  telefone    String?
+  email       String?
+  endereco    String?
+  observacoes String?
+  ativo       Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  propriedades Propriedade[]
+  processos    Processo[]
+  documentos   Documento[]
+
+  @@map("clientes")
+}
+
+model Propriedade {
+  id          String   @id @default(cuid())
+  clienteId   String
+  nome        String
+  cep         String?
+  municipio   String
+  uf          String?
+  area        Float?
+  matricula   String?
+  car         String?
+  ccir        String?
+  coordenadas String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cliente    Cliente    @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  processos  Processo[]
+  documentos Documento[]
+
+  @@map("propriedades")
+}
+
+model Processo {
+  id            String         @id @default(cuid())
+  protocolo     String         @unique
+  clienteId     String
+  propriedadeId String?
+  tipoServico   String
+  status        StatusProcesso @default(PENDENTE)
+  dataInicio    DateTime       @default(now())
+  dataFim       DateTime?
+  observacoes   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  cliente     Cliente      @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  propriedade Propriedade? @relation(fields: [propriedadeId], references: [id])
+  historico   HistoricoProcesso[]
+  documentos  Documento[]
+
+  @@map("processos")
+}
+
+model HistoricoProcesso {
+  id         String         @id @default(cuid())
+  processoId String
+  descricao  String
+  status     StatusProcesso
+  createdAt  DateTime       @default(now())
+
+  processo Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  @@map("historico_processos")
+}
+
+model Documento {
+  id            String   @id @default(cuid())
+  clienteId     String?
+  propriedadeId String?
+  processoId    String?
+  nomeArquivo   String
+  nomeOriginal  String
+  tipo          String
+  tamanho       Int
+  caminho       String
+  createdAt     DateTime @default(now())
+
+  cliente     Cliente?     @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  propriedade Propriedade? @relation(fields: [propriedadeId], references: [id])
+  processo    Processo?    @relation(fields: [processoId], references: [id])
+
+  @@map("documentos")
+}

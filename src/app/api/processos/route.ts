@@ -1,0 +1,90 @@
+import { NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { gerarProtocolo } from "@/lib/protocolo";
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+
+    const { searchParams } = request.nextUrl;
+    const clienteId = searchParams.get("clienteId");
+    const status = searchParams.get("status");
+    const busca = searchParams.get("busca") || "";
+
+    const processos = await prisma.processo.findMany({
+      where: {
+        ...(clienteId ? { clienteId } : {}),
+        ...(status ? { status: status as "PENDENTE" | "EM_ANDAMENTO" | "CONCLUIDO" | "CANCELADO" } : {}),
+        ...(busca
+          ? {
+              OR: [
+                { protocolo: { contains: busca, mode: "insensitive" } },
+                { tipoServico: { contains: busca, mode: "insensitive" } },
+                { cliente: { nome: { contains: busca, mode: "insensitive" } } },
+              ],
+            }
+          : {}),
+      },
+      include: {
+        cliente: { select: { id: true, nome: true } },
+        propriedade: { select: { id: true, nome: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return Response.json(processos);
+  } catch (error) {
+    console.error("[GET /api/processos]", error);
+    return Response.json({ error: "Erro interno do servidor" }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+
+    const body = await request.json();
+    const { clienteId, propriedadeId, tipoServico, observacoes } = body;
+
+    if (!clienteId || !tipoServico) {
+      return Response.json({ error: "Cliente e tipo de serviço são obrigatórios" }, { status: 400 });
+    }
+
+    let protocolo = gerarProtocolo();
+    let tentativas = 0;
+    while (tentativas < 5) {
+      const existe = await prisma.processo.findUnique({ where: { protocolo } });
+      if (!existe) break;
+      protocolo = gerarProtocolo();
+      tentativas++;
+    }
+
+    const processo = await prisma.processo.create({
+      data: {
+        protocolo,
+        clienteId,
+        propriedadeId: propriedadeId || null,
+        tipoServico,
+        observacoes,
+        historico: {
+          create: {
+            descricao: "Processo criado",
+            status: "PENDENTE",
+          },
+        },
+      },
+      include: {
+        cliente: { select: { id: true, nome: true } },
+        propriedade: { select: { id: true, nome: true } },
+      },
+    });
+
+    return Response.json(processo, { status: 201 });
+  } catch (error) {
+    console.error("[POST /api/processos]", error);
+    return Response.json({ error: "Erro interno do servidor" }, { status: 500 });
+  }
+}
