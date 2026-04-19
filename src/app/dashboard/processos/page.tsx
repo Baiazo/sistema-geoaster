@@ -92,6 +92,7 @@ export default function ProcessosPage() {
 
   useEffect(() => {
     if (form.clienteId) {
+      setPropriedades([]);
       fetch(`/api/propriedades?clienteId=${form.clienteId}`)
         .then((r) => r.json())
         .then(setPropriedades);
