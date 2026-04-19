@@ -25,6 +25,7 @@ model Usuario {
   senha        String
   perfilAcesso PerfilAcesso @default(USUARIO)
   ativo        Boolean      @default(true)
+  permissoes   Json         @default("{}")
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signToken, setAuthCookie } from "@/lib/auth";
+import { getPermissoesEfetivas } from "@/lib/permissoes";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,11 +23,14 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Credenciais inválidas" }, { status: 401 });
     }
 
+    const permissoes = getPermissoesEfetivas(usuario.perfilAcesso, usuario.permissoes);
+
     const token = signToken({
       id: usuario.id,
       email: usuario.email,
       nome: usuario.nome,
       perfilAcesso: usuario.perfilAcesso,
+      permissoes,
     });
 
     const cookie = setAuthCookie(token);

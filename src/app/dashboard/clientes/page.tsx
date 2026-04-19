@@ -21,7 +21,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/empty-state";
-import { Plus, Search, Pencil, Trash2, Eye, Loader2, UserRound, Upload, Download, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Eye, Loader2, UserRound, Upload, Download, AlertCircle, CheckCircle2, Lock } from "lucide-react";
+import { usePermissoes } from "@/contexts/permissoes-context";
 
 interface ImportRow {
   nome: string;
@@ -105,6 +106,7 @@ const emptyForm = {
 };
 
 export default function ClientesPage() {
+  const permissoes = usePermissoes();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
@@ -244,6 +246,18 @@ export default function ClientesPage() {
     setDeleteId(null);
   }
 
+  if (!permissoes.verClientes) {
+    return (
+      <div className="p-8">
+        <EmptyState
+          icon={Lock}
+          title="Acesso restrito"
+          description="Você não tem permissão para visualizar clientes. Contate o administrador."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
@@ -251,14 +265,16 @@ export default function ClientesPage() {
           <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
           <p className="text-muted-foreground mt-1">Gerencie os clientes da assessoria</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => { setImportRows([]); setImportResult(null); setImportDialogOpen(true); }}>
-            <Upload className="mr-2 h-4 w-4" /> Importar CSV
-          </Button>
-          <Button onClick={abrirCadastro} className="bg-sky-500 hover:bg-sky-600">
-            <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-          </Button>
-        </div>
+        {permissoes.cadastrarClientes && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setImportRows([]); setImportResult(null); setImportDialogOpen(true); }}>
+              <Upload className="mr-2 h-4 w-4" /> Importar CSV
+            </Button>
+            <Button onClick={abrirCadastro} className="bg-sky-500 hover:bg-sky-600">
+              <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="relative mb-4">
@@ -325,21 +341,25 @@ export default function ClientesPage() {
                       >
                         <Eye className="h-4 w-4" aria-hidden="true" />
                       </Link>
-                      <Button
-                        variant="ghost" size="icon"
-                        onClick={() => abrirEdicao(c)}
-                        aria-label={`Editar ${c.nome}`}
-                      >
-                        <Pencil className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="ghost" size="icon"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => setDeleteId(c.id)}
-                        aria-label={`Excluir ${c.nome}`}
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </Button>
+                      {permissoes.cadastrarClientes && (
+                        <>
+                          <Button
+                            variant="ghost" size="icon"
+                            onClick={() => abrirEdicao(c)}
+                            aria-label={`Editar ${c.nome}`}
+                          >
+                            <Pencil className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon"
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => setDeleteId(c.id)}
+                            aria-label={`Excluir ${c.nome}`}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

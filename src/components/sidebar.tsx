@@ -19,20 +19,24 @@ import {
   Sun,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { Permissoes } from "@/lib/permissoes";
 
-const navItems = [
-  { href: "/dashboard", label: "Início", icon: Home },
-  { href: "/dashboard/clientes", label: "Clientes", icon: Users },
-  { href: "/dashboard/propriedades", label: "Propriedades", icon: MapPin },
-  { href: "/dashboard/processos", label: "Processos", icon: FileText },
-  { href: "/dashboard/documentos", label: "Documentos", icon: FolderOpen },
+type NavPermissao = keyof Permissoes | null;
+
+const navItems: Array<{ href: string; label: string; icon: React.ElementType; permissao: NavPermissao }> = [
+  { href: "/dashboard", label: "Início", icon: Home, permissao: null },
+  { href: "/dashboard/clientes", label: "Clientes", icon: Users, permissao: "verClientes" },
+  { href: "/dashboard/propriedades", label: "Propriedades", icon: MapPin, permissao: "verPropriedades" },
+  { href: "/dashboard/processos", label: "Processos", icon: FileText, permissao: "verProcessos" },
+  { href: "/dashboard/documentos", label: "Documentos", icon: FolderOpen, permissao: "verDocumentos" },
 ];
 
 interface SidebarProps {
   usuario: { nome: string; email: string; perfilAcesso: string };
+  permissoes: Permissoes;
 }
 
-export function Sidebar({ usuario }: SidebarProps) {
+export function Sidebar({ usuario, permissoes }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -58,7 +62,7 @@ export function Sidebar({ usuario }: SidebarProps) {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.filter(({ permissao }) => !permissao || permissoes[permissao]).map(({ href, label, icon: Icon }) => {
           const active =
             href === "/dashboard"
               ? pathname === "/dashboard"

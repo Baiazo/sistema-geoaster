@@ -1,11 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getPermissoesEfetivas } from "@/lib/permissoes";
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+    if (!perm.verPropriedades) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const { searchParams } = request.nextUrl;
     const clienteId = searchParams.get("clienteId");
@@ -27,6 +30,8 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+    if (!perm.cadastrarPropriedades) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const body = await request.json();
     const { clienteId, nome, municipio, cep, uf, area, matricula, car, ccir, coordenadas } = body;

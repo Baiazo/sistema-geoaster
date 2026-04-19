@@ -12,7 +12,7 @@ export async function GET() {
     }
 
     const usuarios = await prisma.usuario.findMany({
-      select: { id: true, nome: true, email: true, perfilAcesso: true, ativo: true, createdAt: true },
+      select: { id: true, nome: true, email: true, perfilAcesso: true, ativo: true, createdAt: true, permissoes: true },
       orderBy: { nome: "asc" },
     });
 

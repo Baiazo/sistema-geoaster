@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/empty-state";
-import { Plus, Pencil, Trash2, Loader2, MapPin, Search, User, Ruler, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, MapPin, Search, User, Ruler, X, Lock } from "lucide-react";
+import { usePermissoes } from "@/contexts/permissoes-context";
 import { buscarCep, formatarCep } from "@/lib/cep";
 
 interface Propriedade {
@@ -43,6 +44,7 @@ const emptyForm = {
 };
 
 export default function PropriedadesPage() {
+  const permissoes = usePermissoes();
   const searchParams = useSearchParams();
   const clienteIdParam = searchParams.get("clienteId");
 
@@ -190,6 +192,18 @@ export default function PropriedadesPage() {
     setDeleteId(null);
   }
 
+  if (!permissoes.verPropriedades) {
+    return (
+      <div className="p-8">
+        <EmptyState
+          icon={Lock}
+          title="Acesso restrito"
+          description="Você não tem permissão para visualizar propriedades. Contate o administrador."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
       {/* Header */}
@@ -200,9 +214,11 @@ export default function PropriedadesPage() {
             {loading ? "Carregando..." : `${propriedades.length} propriedade${propriedades.length !== 1 ? "s" : ""} cadastrada${propriedades.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <Button onClick={abrirCadastro} className="bg-sky-500 hover:bg-sky-600">
-          <Plus className="mr-2 h-4 w-4" /> Nova Propriedade
-        </Button>
+        {permissoes.cadastrarPropriedades && (
+          <Button onClick={abrirCadastro} className="bg-sky-500 hover:bg-sky-600">
+            <Plus className="mr-2 h-4 w-4" /> Nova Propriedade
+          </Button>
+        )}
       </div>
 
       {/* Barra de filtros */}
@@ -217,7 +233,7 @@ export default function PropriedadesPage() {
           />
         </div>
 
-        <Select value={filtroCliente} onValueChange={setFiltroCliente}>
+        <Select value={filtroCliente} onValueChange={(v) => v !== null && setFiltroCliente(v)}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Cliente" />
           </SelectTrigger>
@@ -229,7 +245,7 @@ export default function PropriedadesPage() {
           </SelectContent>
         </Select>
 
-        <Select value={filtroUF} onValueChange={setFiltroUF}>
+        <Select value={filtroUF} onValueChange={(v) => v !== null && setFiltroUF(v)}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="UF" />
           </SelectTrigger>
@@ -341,19 +357,21 @@ export default function PropriedadesPage() {
               )}
 
               {/* Ações */}
-              <div className="mt-auto border-t px-4 py-2.5 flex justify-end gap-1">
-                <Button variant="ghost" size="sm" onClick={() => abrirEdicao(p)} aria-label={`Editar ${p.nome}`}>
-                  <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                </Button>
-                <Button
-                  variant="ghost" size="sm"
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-                  onClick={() => setDeleteId(p.id)}
-                  aria-label={`Excluir ${p.nome}`}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
-                </Button>
-              </div>
+              {permissoes.cadastrarPropriedades && (
+                <div className="mt-auto border-t px-4 py-2.5 flex justify-end gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => abrirEdicao(p)} aria-label={`Editar ${p.nome}`}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                  </Button>
+                  <Button
+                    variant="ghost" size="sm"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    onClick={() => setDeleteId(p.id)}
+                    aria-label={`Excluir ${p.nome}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -369,7 +387,7 @@ export default function PropriedadesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="prop-cliente">Cliente *</Label>
-                <Select value={form.clienteId} onValueChange={(v) => setForm((f) => ({ ...f, clienteId: v }))}>
+                <Select value={form.clienteId} onValueChange={(v) => v !== null && setForm((f) => ({ ...f, clienteId: v }))}>
                   <SelectTrigger id="prop-cliente" aria-invalid={!!erros.clienteId}>
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>

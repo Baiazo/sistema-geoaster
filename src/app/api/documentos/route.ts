@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getPermissoesEfetivas } from "@/lib/permissoes";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
@@ -30,6 +31,8 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+    if (!perm.verDocumentos) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const { searchParams } = request.nextUrl;
     const clienteId = searchParams.get("clienteId");
@@ -61,6 +64,8 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+    if (!perm.cadastrarDocumentos) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const formData = await request.formData();
     const arquivo = formData.get("arquivo") as File | null;

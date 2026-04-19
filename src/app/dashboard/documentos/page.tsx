@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/empty-state";
-import { Upload, Trash2, Download, Loader2, FolderOpen, Paperclip } from "lucide-react";
+import { Upload, Trash2, Download, Loader2, FolderOpen, Paperclip, Lock } from "lucide-react";
+import { usePermissoes } from "@/contexts/permissoes-context";
 
 interface Documento {
   id: string;
@@ -40,6 +41,7 @@ interface Processo { id: string; protocolo: string; tipoServico: string }
 const tiposDocumento = ["CAR", "CCIR", "Matrícula", "Licença ambiental", "Contrato", "Outros"];
 
 export default function DocumentosPage() {
+  const permissoes = usePermissoes();
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [processos, setProcessos] = useState<Processo[]>([]);
@@ -124,6 +126,18 @@ export default function DocumentosPage() {
     return `${(bytes / 1048576).toFixed(1)} MB`;
   }
 
+  if (!permissoes.verDocumentos) {
+    return (
+      <div className="p-8">
+        <EmptyState
+          icon={Lock}
+          title="Acesso restrito"
+          description="Você não tem permissão para visualizar documentos. Contate o administrador."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
@@ -131,12 +145,14 @@ export default function DocumentosPage() {
           <h1 className="text-2xl font-bold text-foreground">Documentos</h1>
           <p className="text-muted-foreground mt-1">Arquivos e documentos técnicos</p>
         </div>
-        <Button
-          onClick={() => { setArquivo(null); setTipo(""); setClienteId(""); setProcessoId(""); setErros({}); setDialogOpen(true); }}
-          className="bg-sky-500 hover:bg-sky-600"
-        >
-          <Upload className="mr-2 h-4 w-4" /> Enviar Documento
-        </Button>
+        {permissoes.cadastrarDocumentos && (
+          <Button
+            onClick={() => { setArquivo(null); setTipo(""); setClienteId(""); setProcessoId(""); setErros({}); setDialogOpen(true); }}
+            className="bg-sky-500 hover:bg-sky-600"
+          >
+            <Upload className="mr-2 h-4 w-4" /> Enviar Documento
+          </Button>
+        )}
       </div>
 
       <div className="bg-card rounded-lg border shadow-md">
@@ -193,14 +209,16 @@ export default function DocumentosPage() {
                       >
                         <Download className="h-4 w-4" aria-hidden="true" />
                       </a>
-                      <Button
-                        variant="ghost" size="icon"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => setDeleteId(d.id)}
-                        aria-label={`Excluir ${d.nomeOriginal}`}
-                      >
-                        <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      </Button>
+                      {permissoes.cadastrarDocumentos && (
+                        <Button
+                          variant="ghost" size="icon"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => setDeleteId(d.id)}
+                          aria-label={`Excluir ${d.nomeOriginal}`}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

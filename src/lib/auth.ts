@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
+import type { Permissoes } from "@/lib/permissoes";
 
 const JWT_SECRET = process.env.JWT_SECRET || "geoaster-secret-key-change-in-production";
 const COOKIE_NAME = "geoaster_token";
@@ -9,6 +10,7 @@ export interface JWTPayload {
   email: string;
   nome: string;
   perfilAcesso: "ADMIN" | "USUARIO";
+  permissoes: Permissoes;
 }
 
 export function signToken(payload: JWTPayload): string {

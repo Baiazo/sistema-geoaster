@@ -20,7 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge } from "@/components/status-badge";
-import { Plus, Search, Eye, Pencil, Loader2, FileText } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Loader2, FileText, Lock } from "lucide-react";
+import { usePermissoes } from "@/contexts/permissoes-context";
 
 interface Processo {
   id: string;
@@ -54,6 +55,7 @@ const emptyForm = {
 };
 
 export default function ProcessosPage() {
+  const permissoes = usePermissoes();
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [propriedades, setPropriedades] = useState<Propriedade[]>([]);
@@ -161,6 +163,18 @@ export default function ProcessosPage() {
     setAtualizarOpen(true);
   }
 
+  if (!permissoes.verProcessos) {
+    return (
+      <div className="p-8">
+        <EmptyState
+          icon={Lock}
+          title="Acesso restrito"
+          description="Você não tem permissão para visualizar processos. Contate o administrador."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
@@ -168,12 +182,14 @@ export default function ProcessosPage() {
           <h1 className="text-2xl font-bold text-foreground">Processos</h1>
           <p className="text-muted-foreground mt-1">Controle de serviços e processos</p>
         </div>
-        <Button
-          onClick={() => { setForm(emptyForm); setErros({}); setDialogOpen(true); }}
-          className="bg-sky-500 hover:bg-sky-600"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Novo Processo
-        </Button>
+        {permissoes.cadastrarProcessos && (
+          <Button
+            onClick={() => { setForm(emptyForm); setErros({}); setDialogOpen(true); }}
+            className="bg-sky-500 hover:bg-sky-600"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Novo Processo
+          </Button>
+        )}
       </div>
 
       <div className="flex gap-3 mb-4">
@@ -255,13 +271,15 @@ export default function ProcessosPage() {
                       >
                         <Eye className="h-4 w-4" aria-hidden="true" />
                       </Link>
-                      <Button
-                        variant="ghost" size="icon"
-                        onClick={() => abrirAtualizar(p)}
-                        aria-label={`Atualizar status de ${p.protocolo}`}
-                      >
-                        <Pencil className="h-4 w-4" aria-hidden="true" />
-                      </Button>
+                      {permissoes.cadastrarProcessos && (
+                        <Button
+                          variant="ghost" size="icon"
+                          onClick={() => abrirAtualizar(p)}
+                          aria-label={`Atualizar status de ${p.protocolo}`}
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
