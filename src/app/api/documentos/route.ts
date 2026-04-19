@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
+import { registrarLog } from "@/lib/auditoria";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
@@ -120,6 +121,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Documento", entidadeId: documento.id, descricao: `Fez upload de "${arquivo.name}" (${tipo})` });
     return Response.json(documento, { status: 201 });
   } catch (error) {
     console.error("[POST /api/documentos]", error);

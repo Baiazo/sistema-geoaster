@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
-import { Users, MapPin, FileText, FolderOpen, BarChart2, Clock, Loader2 } from "lucide-react";
+import { Users, MapPin, FileText, FolderOpen, BarChart2, Clock, Loader2, FileDown, Sheet } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -62,17 +63,20 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { valu
 }
 
 export function DashboardClient({ nomeUsuario }: { nomeUsuario: string }) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const tickColor = isDark ? "#94a3b8" : "#64748b";
   const gridColor = isDark ? "#1e293b" : "#e2e8f0";
   const barColor = isDark ? "#60a5fa" : "#3b82f6";
   const [periodo, setPeriodo] = useState("all");
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportingPDF, setExportingPDF] = useState(false);
+  const [exportingXLS, setExportingXLS] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabsRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Animação do indicador do filtro de período
   useEffect(() => {
@@ -106,12 +110,126 @@ export function DashboardClient({ nomeUsuario }: { nomeUsuario: string }) {
     total: p._count,
   }));
 
+  async function handleExportPDF() {
+    if (!contentRef.current || !data) return;
+    setExportingPDF(true);
+    try {
+      const { toPng } = await import("html-to-image");
+      const { jsPDF } = await import("jspdf");
+      const imgData = await toPng(contentRef.current, { quality: 1, pixelRatio: 2, backgroundColor: "#ffffff" });
+      const naturalSize = await new Promise<{ w: number; h: number }>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+        img.src = imgData;
+      });
+      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth;
+      const imgHeight = (naturalSize.h * pdfWidth) / naturalSize.w;
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+      while (heightLeft > 0) {
+        position -= pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dashboard-geoaster.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportingPDF(false);
+    }
+  }
+
+  async function handleExportExcel() {
+    if (!data) return;
+    setExportingXLS(true);
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.json_to_sheet([
+          { Indicador: "Clientes", Valor: data.totalClientes },
+          { Indicador: "Propriedades", Valor: data.totalPropriedades },
+          { Indicador: "Processos", Valor: data.totalProcessos },
+          { Indicador: "Documentos", Valor: data.totalDocumentos },
+        ]),
+        "Resumo"
+      );
+
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.json_to_sheet(
+          (data.processosPorStatus ?? []).map((p) => ({
+            Status: STATUS_MAP[p.status] ?? p.status,
+            Total: p._count,
+          }))
+        ),
+        "Por Status"
+      );
+
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.json_to_sheet(
+          (data.processosRecentes ?? []).map((p) => ({
+            Protocolo: p.protocolo,
+            Cliente: p.cliente.nome,
+            "Tipo de Serviço": p.tipoServico,
+            Status: STATUS_MAP[p.status] ?? p.status,
+          }))
+        ),
+        "Processos Recentes"
+      );
+
+      XLSX.writeFile(wb, "dashboard-geoaster.xlsx");
+    } finally {
+      setExportingXLS(false);
+    }
+  }
+
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Olá, {nomeUsuario}</h1>
-        <p className="text-muted-foreground mt-1">Visão geral do sistema</p>
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Olá, {nomeUsuario}</h1>
+          <p className="text-muted-foreground mt-1">Visão geral do sistema</p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            disabled={exportingXLS || exportingPDF || loading}
+            aria-label="Exportar Excel"
+          >
+            {exportingXLS ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sheet className="mr-2 h-4 w-4" />}
+            Excel
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPDF}
+            disabled={exportingPDF || exportingXLS || loading}
+            aria-label="Exportar PDF"
+          >
+            {exportingPDF ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+            PDF
+          </Button>
+        </div>
       </div>
+
+      {/* Conteúdo capturado para exportação */}
+      <div ref={contentRef}>
 
       {/* Filtro de período com indicador animado */}
       <div
@@ -232,6 +350,8 @@ export function DashboardClient({ nomeUsuario }: { nomeUsuario: string }) {
           </CardContent>
         </Card>
       </div>
+
+      </div>{/* fim contentRef */}
     </div>
   );
 }

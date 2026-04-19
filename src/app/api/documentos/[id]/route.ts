@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { registrarLog } from "@/lib/auditoria";
 import { unlink } from "fs/promises";
 import path from "path";
 
@@ -24,6 +25,7 @@ export async function DELETE(
     }
 
     await prisma.documento.delete({ where: { id } });
+    registrarLog({ usuarioId: session.id, acao: "EXCLUIR", entidade: "Documento", entidadeId: id, descricao: `Excluiu o documento "${documento.nomeOriginal}"` });
     return Response.json({ ok: true });
   } catch (error) {
     console.error("[DELETE /api/documentos/:id]", error);

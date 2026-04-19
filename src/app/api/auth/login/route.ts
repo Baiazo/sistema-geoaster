@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signToken, setAuthCookie } from "@/lib/auth";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
+import { registrarLog } from "@/lib/auditoria";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +33,8 @@ export async function POST(request: NextRequest) {
       perfilAcesso: usuario.perfilAcesso,
       permissoes,
     });
+
+    registrarLog({ usuarioId: usuario.id, acao: "LOGIN", entidade: "Usuário", descricao: `Login: ${usuario.email}` });
 
     const cookie = setAuthCookie(token);
     const response = Response.json({

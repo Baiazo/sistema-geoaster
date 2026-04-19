@@ -167,23 +167,23 @@ export default function ProtocoloPage() {
                 <CardTitle className="text-base">Histórico do Processo</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-200" />
-                  <div className="space-y-5">
-                    {resultado.historico.map((h, i) => (
-                      <div key={i} className="flex gap-4 pl-10 relative">
-                        <div className="absolute left-2 top-0.5">
-                          <StatusIcon status={h.status} />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{h.descricao}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {statusLabels[h.status]} · {new Date(h.data).toLocaleString("pt-BR")}
-                          </p>
-                        </div>
+                <div>
+                  {resultado.historico.map((h, i) => (
+                    <div key={i} className="flex gap-3 relative">
+                      {i < resultado.historico.length - 1 && (
+                        <div className="absolute left-4 top-8 bottom-0 w-px bg-gray-200" />
+                      )}
+                      <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-white">
+                        <StatusIcon status={h.status} />
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex-1 pb-5 pt-1">
+                        <p className="font-medium text-sm">{h.descricao}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {statusLabels[h.status]} · {new Date(h.data).toLocaleString("pt-BR")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

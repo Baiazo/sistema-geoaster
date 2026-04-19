@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { registrarLog } from "@/lib/auditoria";
 
 export async function GET(
   _request: NextRequest,
@@ -49,6 +50,7 @@ export async function PUT(
       data: { nome, municipio, cep: cep || null, uf: uf || null, area, matricula, car, ccir, coordenadas },
     });
 
+    registrarLog({ usuarioId: session.id, acao: "EDITAR", entidade: "Propriedade", entidadeId: id, descricao: `Editou a propriedade "${nome}"` });
     return Response.json(propriedade);
   } catch (error) {
     console.error("[PUT /api/propriedades/:id]", error);
@@ -68,7 +70,9 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const prop = await prisma.propriedade.findUnique({ where: { id }, select: { nome: true } });
     await prisma.propriedade.delete({ where: { id } });
+    registrarLog({ usuarioId: session.id, acao: "EXCLUIR", entidade: "Propriedade", entidadeId: id, descricao: `Excluiu a propriedade "${prop?.nome ?? id}"` });
     return Response.json({ ok: true });
   } catch (error) {
     console.error("[DELETE /api/propriedades/:id]", error);

@@ -166,12 +166,14 @@ export default function DocumentosPage() {
             title="Nenhum documento cadastrado"
             description="Envie arquivos PDF, Word, Excel ou imagens"
             action={
-              <Button
-                onClick={() => { setArquivo(null); setTipo(""); setClienteId(""); setProcessoId(""); setErros({}); setDialogOpen(true); }}
-                className="bg-sky-500 hover:bg-sky-600"
-              >
-                <Upload className="mr-2 h-4 w-4" /> Enviar Documento
-              </Button>
+              permissoes.cadastrarDocumentos ? (
+                <Button
+                  onClick={() => { setArquivo(null); setTipo(""); setClienteId(""); setProcessoId(""); setErros({}); setDialogOpen(true); }}
+                  className="bg-sky-500 hover:bg-sky-600"
+                >
+                  <Upload className="mr-2 h-4 w-4" /> Enviar Documento
+                </Button>
+              ) : undefined
             }
           />
         ) : (

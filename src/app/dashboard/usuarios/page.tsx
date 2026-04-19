@@ -180,11 +180,30 @@ export default function UsuariosPage() {
     setDeleteId(null);
   }
 
+  const dependencias: Partial<Record<keyof Permissoes, keyof Permissoes>> = {
+    cadastrarClientes: "verClientes",
+    cadastrarPropriedades: "verPropriedades",
+    cadastrarDocumentos: "verDocumentos",
+    cadastrarProcessos: "verProcessos",
+    cadastrarColaboradores: "verColaboradores",
+    cadastrarEquipes: "verEquipes",
+  };
+
   function togglePermissao(chave: keyof Permissoes, val: boolean) {
-    setEditForm((f) => ({
-      ...f,
-      permissoes: { ...f.permissoes, [chave]: val },
-    }));
+    setEditForm((f) => {
+      const novas = { ...f.permissoes, [chave]: val };
+      // habilitar "cadastrar" força "ver" ligado
+      if (val && dependencias[chave]) {
+        novas[dependencias[chave]!] = true;
+      }
+      // desabilitar "ver" força "cadastrar" desligado
+      const dependente = (Object.keys(dependencias) as (keyof Permissoes)[])
+        .find((k) => dependencias[k] === chave);
+      if (!val && dependente) {
+        novas[dependente] = false;
+      }
+      return { ...f, permissoes: novas };
+    });
   }
 
   return (

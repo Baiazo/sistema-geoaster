@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
+import { registrarLog } from "@/lib/auditoria";
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
       data: { nome, cpfCnpj, telefone, email, endereco, observacoes },
     });
 
+    registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Cliente", entidadeId: cliente.id, descricao: `Criou o cliente "${nome}"` });
     return Response.json(cliente, { status: 201 });
   } catch (error) {
     console.error("[POST /api/clientes]", error);

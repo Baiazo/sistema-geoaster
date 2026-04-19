@@ -93,23 +93,26 @@ export default async function ProcessoDetailPage({
           {processo.historico.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sem registros no histórico</p>
           ) : (
-            <div className="relative">
-              <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-200" />
-              <div className="space-y-4">
-                {processo.historico.map((h: HistoricoProcesso, i: number) => (
-                  <div key={h.id} className="flex gap-4 pl-10 relative">
-                    <div className="absolute left-2.5 top-0.5">
-                      <StatusIcon status={h.status} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{h.descricao}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {statusLabels[h.status]} · {new Date(h.createdAt).toLocaleString("pt-BR")}
-                      </p>
-                    </div>
+            <div>
+              {processo.historico.map((h: HistoricoProcesso, i: number) => (
+                <div key={h.id} className="flex gap-3 relative">
+                  {/* Linha vertical só entre itens, nunca no último */}
+                  {i < processo.historico.length - 1 && (
+                    <div className="absolute left-4 top-8 bottom-0 w-px bg-border" />
+                  )}
+                  {/* Ícone com fundo sólido para tapar a linha */}
+                  <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-card">
+                    <StatusIcon status={h.status} />
                   </div>
-                ))}
-              </div>
+                  {/* Conteúdo */}
+                  <div className="flex-1 pb-5 pt-1">
+                    <p className="text-sm font-medium">{h.descricao}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {statusLabels[h.status]} · {new Date(h.createdAt).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

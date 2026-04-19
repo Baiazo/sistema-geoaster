@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { Sidebar } from "@/components/sidebar";
+import { DashboardShell } from "@/components/dashboard-shell";
 import { PermissoesProvider } from "@/contexts/permissoes-context";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
 
@@ -16,12 +16,9 @@ export default async function DashboardLayout({
 
   return (
     <PermissoesProvider permissoes={permissoes}>
-      <div className="flex min-h-screen bg-background">
-        <Sidebar usuario={session} permissoes={permissoes} />
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
-      </div>
+      <DashboardShell usuario={session} permissoes={permissoes}>
+        {children}
+      </DashboardShell>
     </PermissoesProvider>
   );
 }

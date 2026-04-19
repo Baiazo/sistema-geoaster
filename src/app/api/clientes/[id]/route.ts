@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { registrarLog } from "@/lib/auditoria";
 
 export async function GET(
   _request: NextRequest,
@@ -59,6 +60,7 @@ export async function PUT(
       data: { nome, cpfCnpj, telefone, email, endereco, observacoes },
     });
 
+    registrarLog({ usuarioId: session.id, acao: "EDITAR", entidade: "Cliente", entidadeId: id, descricao: `Editou o cliente "${nome}"` });
     return Response.json(cliente);
   } catch (error) {
     console.error("[PUT /api/clientes/:id]", error);
@@ -78,7 +80,9 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const cli = await prisma.cliente.findUnique({ where: { id }, select: { nome: true } });
     await prisma.cliente.update({ where: { id }, data: { ativo: false } });
+    registrarLog({ usuarioId: session.id, acao: "EXCLUIR", entidade: "Cliente", entidadeId: id, descricao: `Excluiu o cliente "${cli?.nome ?? id}"` });
     return Response.json({ ok: true });
   } catch (error) {
     console.error("[DELETE /api/clientes/:id]", error);

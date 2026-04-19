@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { registrarLog } from "@/lib/auditoria";
 
 export async function GET() {
   try {
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
       select: { id: true, nome: true, email: true, perfilAcesso: true, createdAt: true },
     });
 
+    registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Usuário", entidadeId: usuario.id, descricao: `Criou o usuário "${nome}" (${email})` });
     return Response.json(usuario, { status: 201 });
   } catch (error) {
     console.error("[POST /api/usuarios]", error);

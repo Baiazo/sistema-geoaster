@@ -28,17 +28,21 @@ interface Processo {
   protocolo: string;
   clienteId: string;
   propriedadeId?: string;
+  equipeId?: string;
   tipoServico: string;
   status: string;
+  valor?: number;
   dataInicio: string;
   dataFim?: string;
   observacoes?: string;
   cliente: { id: string; nome: string };
   propriedade?: { id: string; nome: string };
+  equipe?: { id: string; nome: string };
 }
 
 interface Cliente { id: string; nome: string }
 interface Propriedade { id: string; nome: string; clienteId: string }
+interface Equipe { id: string; nome: string }
 
 const tiposServico = [
   "Georreferenciamento",
@@ -51,7 +55,7 @@ const tiposServico = [
 ];
 
 const emptyForm = {
-  clienteId: "", propriedadeId: "", tipoServico: "", observacoes: "",
+  clienteId: "", propriedadeId: "", equipeId: "", tipoServico: "", observacoes: "", valor: "",
 };
 
 export default function ProcessosPage() {
@@ -59,6 +63,7 @@ export default function ProcessosPage() {
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [propriedades, setPropriedades] = useState<Propriedade[]>([]);
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [loading, setLoading] = useState(true);
@@ -90,6 +95,10 @@ export default function ProcessosPage() {
 
   useEffect(() => {
     fetch("/api/clientes").then((r) => r.json()).then(setClientes);
+    fetch("/api/equipes")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setEquipes(data); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -122,6 +131,8 @@ export default function ProcessosPage() {
         body: JSON.stringify({
           ...form,
           propriedadeId: form.propriedadeId || undefined,
+          equipeId: form.equipeId || undefined,
+          valor: form.valor ? Number(form.valor) : undefined,
         }),
       });
       const data = await res.json();
@@ -228,7 +239,7 @@ export default function ProcessosPage() {
             title={busca || filtroStatus !== "todos" ? "Nenhum processo encontrado" : "Nenhum processo cadastrado"}
             description={busca || filtroStatus !== "todos" ? "Tente outros filtros de busca" : "Crie o primeiro processo para começar"}
             action={
-              !busca && filtroStatus === "todos" ? (
+              !busca && filtroStatus === "todos" && permissoes.cadastrarProcessos ? (
                 <Button
                   onClick={() => { setForm(emptyForm); setErros({}); setDialogOpen(true); }}
                   className="bg-sky-500 hover:bg-sky-600"
@@ -339,6 +350,34 @@ export default function ProcessosPage() {
                 </SelectContent>
               </Select>
               {erros.tipoServico && <p className="text-sm text-red-500">{erros.tipoServico}</p>}
+            </div>
+            {equipes.length > 0 && (
+              <div className="space-y-1.5">
+                <Label htmlFor="processo-equipe">Equipe responsável (opcional)</Label>
+                <Select
+                  value={form.equipeId}
+                  onValueChange={(v) => v !== null && setForm((f) => ({ ...f, equipeId: v }))}
+                >
+                  <SelectTrigger id="processo-equipe">
+                    <SelectValue placeholder="Selecione a equipe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {equipes.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="processo-valor">Valor do serviço (R$)</Label>
+              <Input
+                id="processo-valor"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0,00"
+                value={form.valor}
+                onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="processo-obs">Observações</Label>

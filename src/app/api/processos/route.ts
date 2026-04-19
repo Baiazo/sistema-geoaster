@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { gerarProtocolo } from "@/lib/protocolo";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
+import { registrarLog } from "@/lib/auditoria";
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
       include: {
         cliente: { select: { id: true, nome: true } },
         propriedade: { select: { id: true, nome: true } },
+        equipe: { select: { id: true, nome: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!perm.cadastrarProcessos) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const body = await request.json();
-    const { clienteId, propriedadeId, tipoServico, observacoes } = body;
+    const { clienteId, propriedadeId, equipeId, tipoServico, observacoes, valor } = body;
 
     if (!clienteId || !tipoServico) {
       return Response.json({ error: "Cliente e tipo de serviço são obrigatórios" }, { status: 400 });
@@ -72,8 +74,10 @@ export async function POST(request: NextRequest) {
         protocolo,
         clienteId,
         propriedadeId: propriedadeId || null,
+        equipeId: equipeId || null,
         tipoServico,
         observacoes,
+        valor: valor ? Number(valor) : null,
         historico: {
           create: {
             descricao: "Processo criado",
@@ -84,9 +88,11 @@ export async function POST(request: NextRequest) {
       include: {
         cliente: { select: { id: true, nome: true } },
         propriedade: { select: { id: true, nome: true } },
+        equipe: { select: { id: true, nome: true } },
       },
     });
 
+    registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Processo", entidadeId: processo.id, descricao: `Criou o processo ${processo.protocolo} — ${tipoServico}` });
     return Response.json(processo, { status: 201 });
   } catch (error) {
     console.error("[POST /api/processos]", error);

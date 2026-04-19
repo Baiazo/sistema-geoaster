@@ -29,7 +29,23 @@ model Usuario {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
+  logs LogAuditoria[]
+
   @@map("usuarios")
+}
+
+model LogAuditoria {
+  id         String   @id @default(cuid())
+  usuarioId  String?
+  acao       String
+  entidade   String
+  entidadeId String?
+  descricao  String?
+  createdAt  DateTime @default(now())
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("logs_auditoria")
 }
 
 model Cliente {
@@ -73,13 +89,57 @@ model Propriedade {
   @@map("propriedades")
 }
 
+model Colaborador {
+  id        String   @id @default(cuid())
+  nome      String
+  cpf       String?  @unique
+  email     String?
+  cargo     String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  equipesComoMembro     EquipeColaborador[]
+  equipesComoResponsavel Equipe[]            @relation("EquipeResponsavel")
+
+  @@map("colaboradores")
+}
+
+model Equipe {
+  id              String   @id @default(cuid())
+  nome            String
+  responsavelId   String?
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  responsavel  Colaborador?        @relation("EquipeResponsavel", fields: [responsavelId], references: [id])
+  membros      EquipeColaborador[]
+  processos    Processo[]
+
+  @@map("equipes")
+}
+
+model EquipeColaborador {
+  equipeId      String
+  colaboradorId String
+
+  equipe      Equipe      @relation(fields: [equipeId], references: [id], onDelete: Cascade)
+  colaborador Colaborador @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+
+  @@id([equipeId, colaboradorId])
+  @@map("equipe_colaboradores")
+}
+
 model Processo {
   id            String         @id @default(cuid())
   protocolo     String         @unique
   clienteId     String
   propriedadeId String?
+  equipeId      String?
   tipoServico   String
   status        StatusProcesso @default(PENDENTE)
+  valor         Float?
   dataInicio    DateTime       @default(now())
   dataFim       DateTime?
   observacoes   String?
@@ -88,6 +148,7 @@ model Processo {
 
   cliente     Cliente      @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   propriedade Propriedade? @relation(fields: [propriedadeId], references: [id])
+  equipe      Equipe?      @relation(fields: [equipeId], references: [id])
   historico   HistoricoProcesso[]
   documentos  Documento[]
 

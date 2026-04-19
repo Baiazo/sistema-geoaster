@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
+import { registrarLog } from "@/lib/auditoria";
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
       data: { clienteId, nome, municipio, cep: cep || null, uf: uf || null, area, matricula, car, ccir, coordenadas },
     });
 
+    registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Propriedade", entidadeId: propriedade.id, descricao: `Criou a propriedade "${nome}" em ${municipio}` });
     return Response.json(propriedade, { status: 201 });
   } catch (error) {
     console.error("[POST /api/propriedades]", error);

@@ -299,7 +299,7 @@ export default function ClientesPage() {
             title={busca ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
             description={busca ? "Tente outro termo de busca" : "Cadastre seu primeiro cliente para começar"}
             action={
-              !busca ? (
+              !busca && permissoes.cadastrarClientes ? (
                 <Button onClick={abrirCadastro} className="bg-sky-500 hover:bg-sky-600">
                   <Plus className="mr-2 h-4 w-4" /> Novo Cliente
                 </Button>

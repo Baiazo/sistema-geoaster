@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -17,6 +17,10 @@ import {
   ChevronRight,
   Moon,
   Sun,
+  BarChart2,
+  UsersRound,
+  X,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Permissoes } from "@/lib/permissoes";
@@ -29,14 +33,19 @@ const navItems: Array<{ href: string; label: string; icon: React.ElementType; pe
   { href: "/dashboard/propriedades", label: "Propriedades", icon: MapPin, permissao: "verPropriedades" },
   { href: "/dashboard/processos", label: "Processos", icon: FileText, permissao: "verProcessos" },
   { href: "/dashboard/documentos", label: "Documentos", icon: FolderOpen, permissao: "verDocumentos" },
+  { href: "/dashboard/colaboradores", label: "Colaboradores", icon: Users, permissao: "verColaboradores" },
+  { href: "/dashboard/equipes", label: "Equipes", icon: UsersRound, permissao: "verEquipes" },
+  { href: "/dashboard/graficos", label: "Gráficos", icon: BarChart2, permissao: null },
 ];
 
 interface SidebarProps {
   usuario: { nome: string; email: string; perfilAcesso: string };
   permissoes: Permissoes;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function Sidebar({ usuario, permissoes }: SidebarProps) {
+export function Sidebar({ usuario, permissoes, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -48,9 +57,24 @@ export function Sidebar({ usuario, permissoes }: SidebarProps) {
     router.refresh();
   }
 
+  function handleNavClick() {
+    onClose?.();
+  }
+
   return (
-    <aside className="flex flex-col w-64 min-h-screen bg-gray-900 text-white">
-      <div className="flex items-center justify-center px-6 py-5 border-b border-gray-700">
+    <aside
+      className={cn(
+        // Base
+        "flex flex-col w-64 bg-gray-900 text-white",
+        // Mobile: drawer fixo, desliza da esquerda
+        "fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out",
+        isOpen ? "translate-x-0" : "-translate-x-full",
+        // Desktop: estático no fluxo normal, sempre visível
+        "md:static md:translate-x-0 md:transition-none md:z-auto"
+      )}
+    >
+      {/* Header da sidebar */}
+      <div className="relative flex items-center justify-center px-6 py-5 border-b border-gray-700">
         <Image
           src="/logo-geoaster.png"
           alt="GeoAster"
@@ -59,45 +83,72 @@ export function Sidebar({ usuario, permissoes }: SidebarProps) {
           className="brightness-0 invert"
           priority
         />
+        {/* Botão fechar — só no mobile */}
+        <button
+          onClick={onClose}
+          className="md:hidden absolute right-4 p-1 rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+          aria-label="Fechar menu"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {navItems.filter(({ permissao }) => !permissao || permissoes[permissao]).map(({ href, label, icon: Icon }) => {
-          const active =
-            href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname.startsWith(href);
-          return (
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {navItems
+          .filter(({ permissao }) => !permissao || permissoes[permissao])
+          .map(({ href, label, icon: Icon }) => {
+            const active =
+              href === "/dashboard"
+                ? pathname === "/dashboard"
+                : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={handleNavClick}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
+                  active
+                    ? "bg-sky-500 text-white shadow-sm"
+                    : "text-gray-400 hover:bg-gray-700 hover:text-white"
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span>{label}</span>
+                {active && <ChevronRight className="ml-auto h-4 w-4" />}
+              </Link>
+            );
+          })}
+
+        {usuario.perfilAcesso === "ADMIN" && (
+          <>
             <Link
-              key={href}
-              href={href}
+              href="/dashboard/usuarios"
+              onClick={handleNavClick}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-                active
+                pathname.startsWith("/dashboard/usuarios")
                   ? "bg-sky-500 text-white shadow-sm"
                   : "text-gray-400 hover:bg-gray-700 hover:text-white"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span>{label}</span>
-              {active && <ChevronRight className="ml-auto h-4 w-4" />}
+              <Settings className="h-4 w-4 shrink-0" />
+              <span>Usuários</span>
             </Link>
-          );
-        })}
-
-        {usuario.perfilAcesso === "ADMIN" && (
-          <Link
-            href="/dashboard/usuarios"
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-              pathname.startsWith("/dashboard/usuarios")
-                ? "bg-sky-500 text-white shadow-sm"
-                : "text-gray-400 hover:bg-gray-700 hover:text-white"
-            )}
-          >
-            <Settings className="h-4 w-4 shrink-0" />
-            <span>Usuários</span>
-          </Link>
+            <Link
+              href="/dashboard/admin/logs"
+              onClick={handleNavClick}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
+                pathname.startsWith("/dashboard/admin/logs")
+                  ? "bg-sky-500 text-white shadow-sm"
+                  : "text-gray-400 hover:bg-gray-700 hover:text-white"
+              )}
+            >
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <span>Auditoria</span>
+            </Link>
+          </>
         )}
       </nav>
 

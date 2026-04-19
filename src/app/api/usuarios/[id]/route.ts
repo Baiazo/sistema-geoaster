@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { registrarLog } from "@/lib/auditoria";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -36,6 +37,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       select: { id: true, nome: true, email: true, perfilAcesso: true, ativo: true, createdAt: true, permissoes: true },
     });
 
+    registrarLog({ usuarioId: session.id, acao: "EDITAR", entidade: "Usuário", entidadeId: id, descricao: `Editou o usuário "${nome}" (${email})` });
     return Response.json(usuario);
   } catch (error) {
     console.error("[PUT /api/usuarios/[id]]", error);
@@ -57,8 +59,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return Response.json({ error: "Você não pode excluir sua própria conta" }, { status: 400 });
     }
 
+    const usr = await prisma.usuario.findUnique({ where: { id }, select: { nome: true, email: true } });
     await prisma.usuario.delete({ where: { id } });
-
+    registrarLog({ usuarioId: session.id, acao: "EXCLUIR", entidade: "Usuário", entidadeId: id, descricao: `Excluiu o usuário "${usr?.nome ?? id}" (${usr?.email ?? ""})` });
     return new Response(null, { status: 204 });
   } catch (error) {
     console.error("[DELETE /api/usuarios/[id]]", error);

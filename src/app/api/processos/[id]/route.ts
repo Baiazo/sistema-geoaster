@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { enviarWhatsApp, montarMensagemProtocolo } from "@/lib/whatsapp";
+import { registrarLog } from "@/lib/auditoria";
 
 export async function GET(
   _request: NextRequest,
@@ -17,6 +18,12 @@ export async function GET(
       include: {
         cliente: true,
         propriedade: true,
+        equipe: {
+          include: {
+            responsavel: { select: { id: true, nome: true } },
+            membros: { include: { colaborador: { select: { id: true, nome: true } } } },
+          },
+        },
         historico: { orderBy: { createdAt: "desc" } },
         documentos: { orderBy: { createdAt: "desc" } },
       },
@@ -40,7 +47,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { status, observacoes, descricaoHistorico, dataFim, tipoServico, propriedadeId } = body;
+    const { status, observacoes, descricaoHistorico, dataFim, tipoServico, propriedadeId, equipeId, valor } = body;
 
     const processo = await prisma.processo.update({
       where: { id },
@@ -50,6 +57,8 @@ export async function PUT(
         ...(dataFim !== undefined ? { dataFim: dataFim ? new Date(dataFim) : null } : {}),
         ...(tipoServico ? { tipoServico } : {}),
         ...(propriedadeId !== undefined ? { propriedadeId: propriedadeId || null } : {}),
+        ...(equipeId !== undefined ? { equipeId: equipeId || null } : {}),
+        ...(valor !== undefined ? { valor: valor ? Number(valor) : null } : {}),
         ...(status
           ? {
               historico: {
@@ -67,6 +76,8 @@ export async function PUT(
         historico: { orderBy: { createdAt: "desc" } },
       },
     });
+
+    registrarLog({ usuarioId: session.id, acao: "EDITAR", entidade: "Processo", entidadeId: id, descricao: status ? `Atualizou processo ${processo.protocolo} → status ${status}` : `Editou o processo ${processo.protocolo}` });
 
     // Dispara notificação WhatsApp se status mudou e cliente tem telefone
     if (status && processo.cliente.telefone) {
@@ -98,7 +109,9 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const proc = await prisma.processo.findUnique({ where: { id }, select: { protocolo: true } });
     await prisma.processo.delete({ where: { id } });
+    registrarLog({ usuarioId: session.id, acao: "EXCLUIR", entidade: "Processo", entidadeId: id, descricao: `Excluiu o processo ${proc?.protocolo ?? id}` });
     return Response.json({ ok: true });
   } catch (error) {
     console.error("[DELETE /api/processos/:id]", error);
