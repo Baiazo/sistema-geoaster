@@ -18,6 +18,7 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { Plus, Pencil, Trash2, Loader2, Users, Lock, Search } from "lucide-react";
 import { usePermissoes } from "@/contexts/permissoes-context";
+import { maskCpf } from "@/lib/masks";
 
 interface Colaborador {
   id: string;
@@ -278,7 +279,7 @@ export default function ColaboradoresPage() {
                 id="col-cpf"
                 value={form.cpf}
                 placeholder="000.000.000-00"
-                onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, cpf: maskCpf(e.target.value) }))}
               />
             </div>
             <div className="flex justify-end gap-2">

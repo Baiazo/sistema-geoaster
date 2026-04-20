@@ -55,7 +55,7 @@ export async function PUT(
     if (!perm.cadastrarEquipes) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const { id } = await params;
-    const { nome, responsavelId, membrosIds, ativo } = await request.json();
+    const { nome, telefone, responsavelId, membrosIds, ativo } = await request.json();
 
     if (!nome) return Response.json({ error: "Nome é obrigatório" }, { status: 400 });
 
@@ -65,6 +65,7 @@ export async function PUT(
       where: { id },
       data: {
         nome,
+        telefone: telefone || null,
         responsavelId: responsavelId || null,
         ativo: ativo ?? true,
         membros: membrosIds?.length

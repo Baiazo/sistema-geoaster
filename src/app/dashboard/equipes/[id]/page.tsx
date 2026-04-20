@@ -12,7 +12,7 @@ import {
 import {
   ArrowLeft, Loader2, UserCheck, Users, FileText,
   Briefcase, CheckCircle2, Clock, XCircle, Eye,
-  Mail, User,
+  Mail, User, Phone,
 } from "lucide-react";
 
 interface Colaborador {
@@ -37,6 +37,7 @@ interface Processo {
 interface Equipe {
   id: string;
   nome: string;
+  telefone?: string;
   ativo: boolean;
   responsavel?: Colaborador;
   membros: { colaborador: Colaborador }[];
@@ -183,6 +184,12 @@ export default function EquipeDetalhePage() {
                 {equipe.responsavel.cargo && (
                   <span className="text-xs">· {equipe.responsavel.cargo}</span>
                 )}
+              </p>
+            )}
+            {equipe.telefone && (
+              <p className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-sm">
+                <Phone className="h-4 w-4" aria-hidden="true" />
+                <span className="font-medium text-foreground">{equipe.telefone}</span>
               </p>
             )}
           </div>

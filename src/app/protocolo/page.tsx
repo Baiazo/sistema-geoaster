@@ -21,6 +21,9 @@ interface ResultadoProtocolo {
   dataFim?: string;
   cliente: string;
   propriedade?: string;
+  equipe?: string;
+  equipeResponsavel?: string;
+  equipeTelefone?: string;
   historico: Historico[];
 }
 
@@ -159,6 +162,26 @@ export default function ProtocoloPage() {
                     </div>
                   )}
                 </div>
+                {resultado.equipe && (
+                  <div className="border-t pt-3 mt-1 space-y-2">
+                    <div>
+                      <p className="text-gray-500 text-xs">Equipe responsável</p>
+                      <p className="font-medium">{resultado.equipe}</p>
+                    </div>
+                    {resultado.equipeResponsavel && (
+                      <div>
+                        <p className="text-gray-500 text-xs">Responsável</p>
+                        <p className="font-medium">{resultado.equipeResponsavel}</p>
+                      </div>
+                    )}
+                    {resultado.equipeTelefone && (
+                      <div>
+                        <p className="text-gray-500 text-xs">Contato</p>
+                        <p className="font-medium">{resultado.equipeTelefone}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

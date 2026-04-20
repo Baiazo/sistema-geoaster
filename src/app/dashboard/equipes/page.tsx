@@ -24,6 +24,7 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { Plus, Pencil, Trash2, Loader2, UsersRound, Lock, Search, UserCheck, Eye } from "lucide-react";
 import { usePermissoes } from "@/contexts/permissoes-context";
+import { maskTelefone } from "@/lib/masks";
 
 interface Colaborador {
   id: string;
@@ -34,6 +35,7 @@ interface Colaborador {
 interface Equipe {
   id: string;
   nome: string;
+  telefone?: string;
   responsavel?: { id: string; nome: string; cargo?: string };
   membros: { colaborador: { id: string; nome: string; cargo?: string } }[];
   _count: { processos: number };
@@ -51,6 +53,7 @@ export default function EquipesPage() {
   const [saving, setSaving] = useState(false);
 
   const [nomeEquipe, setNomeEquipe] = useState("");
+  const [telefoneEquipe, setTelefoneEquipe] = useState("");
   const [responsavelId, setResponsavelId] = useState("");
   const [membrosIds, setMembrosIds] = useState<string[]>([]);
   const [buscaMembros, setBuscaMembros] = useState("");
@@ -94,6 +97,7 @@ export default function EquipesPage() {
   function abrirNovo() {
     setEditando(null);
     setNomeEquipe("");
+    setTelefoneEquipe("");
     setResponsavelId("");
     setMembrosIds([]);
     setBuscaMembros("");
@@ -104,6 +108,7 @@ export default function EquipesPage() {
   function abrirEditar(equipe: Equipe) {
     setEditando(equipe);
     setNomeEquipe(equipe.nome);
+    setTelefoneEquipe(equipe.telefone || "");
     setResponsavelId(equipe.responsavel?.id || "");
     setMembrosIds(equipe.membros.map((m) => m.colaborador.id));
     setBuscaMembros("");
@@ -136,6 +141,7 @@ export default function EquipesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nome: nomeEquipe.trim(),
+          telefone: telefoneEquipe.trim() || undefined,
           responsavelId: responsavelId || undefined,
           membrosIds,
         }),
@@ -236,10 +242,20 @@ export default function EquipesPage() {
                     {equipe.responsavel ? (
                       <div className="flex items-center gap-1.5">
                         <UserCheck className="h-3.5 w-3.5 text-sky-500" aria-hidden="true" />
-                        <span>{equipe.responsavel.nome}</span>
+                        <div>
+                          <span>{equipe.responsavel.nome}</span>
+                          {equipe.telefone && (
+                            <p className="text-xs text-muted-foreground">{equipe.telefone}</p>
+                          )}
+                        </div>
                       </div>
                     ) : (
-                      <span className="text-muted-foreground text-sm">Sem responsável</span>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Sem responsável</span>
+                        {equipe.telefone && (
+                          <p className="text-xs text-muted-foreground">{equipe.telefone}</p>
+                        )}
+                      </div>
                     )}
                   </TableCell>
                   <TableCell>
@@ -320,6 +336,17 @@ export default function EquipesPage() {
                 aria-invalid={!!erros.nome}
               />
               {erros.nome && <p className="text-sm text-red-500">{erros.nome}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="eq-telefone">Telefone de contato</Label>
+              <Input
+                id="eq-telefone"
+                type="tel"
+                placeholder="(00) 00000-0000"
+                value={telefoneEquipe}
+                onChange={(e) => setTelefoneEquipe(maskTelefone(e.target.value))}
+              />
             </div>
 
             <div className="space-y-1.5">

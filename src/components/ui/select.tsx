@@ -6,7 +6,17 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+// Registry so SelectValue can resolve value → label when items are IDs
+const SelectLabelRegistry = React.createContext<React.MutableRefObject<Map<string, React.ReactNode>> | null>(null)
+
+function Select<Value = string>(props: SelectPrimitive.Root.Props<Value>) {
+  const registry = React.useRef(new Map<string, React.ReactNode>())
+  return (
+    <SelectLabelRegistry.Provider value={registry}>
+      <SelectPrimitive.Root {...props} />
+    </SelectLabelRegistry.Provider>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
@@ -18,11 +28,26 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({ className, placeholder, children: childrenProp, ...props }: SelectPrimitive.Value.Props) {
+  const registry = React.useContext(SelectLabelRegistry)
+
+  const resolvedChildren: SelectPrimitive.Value.Props["children"] =
+    childrenProp !== undefined
+      ? childrenProp
+      : registry
+      ? (value: unknown) => {
+          const key = value != null && value !== "" ? String(value) : null
+          if (!key) return placeholder ?? null
+          return registry.current.get(key) ?? key
+        }
+      : undefined
+
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
       className={cn("flex flex-1 text-left", className)}
+      placeholder={placeholder}
+      children={resolvedChildren}
       {...props}
     />
   )
@@ -113,6 +138,17 @@ function SelectItem({
   children,
   ...props
 }: SelectPrimitive.Item.Props) {
+  const registry = React.useContext(SelectLabelRegistry)
+
+  // Register value → label so SelectValue can resolve it
+  React.useEffect(() => {
+    if (registry && props.value != null && props.value !== "") {
+      const key = String(props.value)
+      const label = typeof children === "string" ? children : undefined
+      if (label !== undefined) registry.current.set(key, label)
+    }
+  })
+
   return (
     <SelectPrimitive.Item
       data-slot="select-item"

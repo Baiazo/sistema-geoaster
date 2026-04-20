@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/empty-state";
 import { Plus, Search, Pencil, Trash2, Eye, Loader2, UserRound, Upload, Download, AlertCircle, CheckCircle2, Lock } from "lucide-react";
 import { usePermissoes } from "@/contexts/permissoes-context";
+import { maskCpfCnpj, maskTelefone } from "@/lib/masks";
 
 interface ImportRow {
   nome: string;
@@ -392,7 +393,7 @@ export default function ClientesPage() {
                 <Input
                   id="cliente-cpfcnpj"
                   value={form.cpfCnpj}
-                  onChange={(e) => setForm((f) => ({ ...f, cpfCnpj: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, cpfCnpj: maskCpfCnpj(e.target.value) }))}
                   aria-invalid={!!erros.cpfCnpj}
                   aria-describedby={erros.cpfCnpj ? "erro-cpfcnpj" : undefined}
                 />
@@ -403,7 +404,7 @@ export default function ClientesPage() {
                 <Input
                   id="cliente-telefone"
                   value={form.telefone}
-                  onChange={(e) => setForm((f) => ({ ...f, telefone: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, telefone: maskTelefone(e.target.value) }))}
                 />
               </div>
               <div className="col-span-2 space-y-1.5">

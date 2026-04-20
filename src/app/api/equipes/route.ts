@@ -37,13 +37,14 @@ export async function POST(request: NextRequest) {
     const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
     if (!perm.cadastrarEquipes) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
-    const { nome, responsavelId, membrosIds } = await request.json();
+    const { nome, telefone, responsavelId, membrosIds } = await request.json();
 
     if (!nome) return Response.json({ error: "Nome é obrigatório" }, { status: 400 });
 
     const equipe = await prisma.equipe.create({
       data: {
         nome,
+        telefone: telefone || null,
         responsavelId: responsavelId || null,
         membros: membrosIds?.length
           ? { create: membrosIds.map((colaboradorId: string) => ({ colaboradorId })) }

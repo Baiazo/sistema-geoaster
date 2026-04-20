@@ -13,6 +13,13 @@ export async function GET(
       include: {
         cliente: { select: { nome: true } },
         propriedade: { select: { nome: true, municipio: true } },
+        equipe: {
+          select: {
+            nome: true,
+            telefone: true,
+            responsavel: { select: { nome: true } },
+          },
+        },
         historico: { orderBy: { createdAt: "asc" } },
       },
     });
@@ -31,6 +38,9 @@ export async function GET(
       propriedade: processo.propriedade
         ? `${processo.propriedade.nome} - ${processo.propriedade.municipio}`
         : null,
+      equipe: processo.equipe?.nome ?? null,
+      equipeResponsavel: processo.equipe?.responsavel?.nome ?? null,
+      equipeTelefone: processo.equipe?.telefone ?? null,
       historico: processo.historico.map((h: { descricao: string; status: string; createdAt: Date }) => ({
         descricao: h.descricao,
         status: h.status,

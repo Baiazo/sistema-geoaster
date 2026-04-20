@@ -108,6 +108,7 @@ model Colaborador {
 model Equipe {
   id              String   @id @default(cuid())
   nome            String
+  telefone        String?
   responsavelId   String?
   ativo           Boolean  @default(true)
   createdAt       DateTime @default(now())

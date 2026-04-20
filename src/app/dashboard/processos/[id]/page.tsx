@@ -40,6 +40,13 @@ export default async function ProcessoDetailPage({
     include: {
       cliente: true,
       propriedade: true,
+      equipe: {
+        select: {
+          nome: true,
+          telefone: true,
+          responsavel: { select: { nome: true } },
+        },
+      },
       historico: { orderBy: { createdAt: "asc" } },
       documentos: { orderBy: { createdAt: "desc" } },
     },
@@ -70,6 +77,20 @@ export default async function ProcessoDetailPage({
           <CardContent className="space-y-2 text-sm">
             <div><span className="font-medium text-muted-foreground">Cliente: </span>{processo.cliente.nome}</div>
             <div><span className="font-medium text-muted-foreground">Propriedade: </span>{processo.propriedade?.nome || "—"}</div>
+            {processo.equipe && (
+              <>
+                <div><span className="font-medium text-muted-foreground">Equipe: </span>{processo.equipe.nome}</div>
+                {processo.equipe.responsavel && (
+                  <div><span className="font-medium text-muted-foreground">Responsável: </span>{processo.equipe.responsavel.nome}</div>
+                )}
+                {processo.equipe.telefone && (
+                  <div>
+                    <span className="font-medium text-muted-foreground">Contato: </span>
+                    {processo.equipe.telefone}
+                  </div>
+                )}
+              </>
+            )}
             <div>
               <span className="font-medium text-muted-foreground">Início: </span>
               {new Date(processo.dataInicio).toLocaleDateString("pt-BR")}
