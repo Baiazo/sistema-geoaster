@@ -86,6 +86,15 @@ export default function ProtocoloPage() {
               width={220}
               height={47}
               priority
+              className="dark:hidden"
+            />
+            <Image
+              src="/logo-geoaster-branco.png"
+              alt="GeoAster"
+              width={220}
+              height={47}
+              priority
+              className="hidden dark:block"
             />
           </div>
           <p className="text-gray-600">Consulte o andamento do seu processo</p>
@@ -219,7 +228,14 @@ export default function ProtocoloPage() {
             alt="GeoAster"
             width={100}
             height={21}
-            className="opacity-30"
+            className="opacity-30 dark:hidden"
+          />
+          <Image
+            src="/logo-geoaster-branco.png"
+            alt="GeoAster"
+            width={100}
+            height={21}
+            className="opacity-30 hidden dark:block"
           />
         </div>
       </div>

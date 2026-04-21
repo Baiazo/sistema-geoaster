@@ -50,6 +50,15 @@ export default function LoginPage() {
               width={200}
               height={43}
               priority
+              className="dark:hidden"
+            />
+            <Image
+              src="/logo-geoaster-branco.png"
+              alt="GeoAster"
+              width={200}
+              height={43}
+              priority
+              className="hidden dark:block"
             />
           </div>
           <p className="text-sm text-muted-foreground">Acesse o sistema de gestão</p>
