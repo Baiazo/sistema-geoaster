@@ -9,6 +9,7 @@ interface ClienteImport {
   cpfCnpj: string;
   telefone?: string;
   email?: string;
+  cidade?: string;
   endereco?: string;
   observacoes?: string;
 }
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
         cpfCnpj,
         telefone: typeof c.telefone === "string" ? c.telefone.trim() || null : null,
         email: typeof c.email === "string" ? c.email.trim() || null : null,
+        cidade: typeof c.cidade === "string" ? c.cidade.trim() || null : null,
         endereco: typeof c.endereco === "string" ? c.endereco.trim() || null : null,
         observacoes: typeof c.observacoes === "string" ? c.observacoes.trim() || null : null,
       };

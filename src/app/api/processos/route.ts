@@ -96,6 +96,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    if (propriedadeId) {
+      await prisma.documento.updateMany({
+        where: { propriedadeId, processoId: null },
+        data: { processoId: processo.id },
+      });
+    }
+
     registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Processo", entidadeId: processo.id, descricao: `Criou o processo ${processo.protocolo} — ${tipoServico}` });
     return Response.json(processo, { status: 201 });
   } catch (error) {

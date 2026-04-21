@@ -7,10 +7,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Paperclip, CheckCircle2 } from "lucide-react";
 import { buscarCep, formatarCep } from "@/lib/cep";
 
 const empty = { nome: "", cep: "", municipio: "", uf: "", area: "", matricula: "", car: "", ccir: "", coordenadas: "" };
+
+type DocField = "matricula" | "car" | "ccir" | "mapa";
+type FilesState = Record<DocField, File | null>;
+type UploadedState = Record<DocField, boolean>;
+
+const emptyFiles: FilesState = { matricula: null, car: null, ccir: null, mapa: null };
+const emptyUploaded: UploadedState = { matricula: false, car: false, ccir: false, mapa: false };
+
+const docLabels: Record<DocField, string> = { matricula: "Matrícula", car: "CAR", ccir: "CCIR", mapa: "Mapa" };
+
+interface UploadBtnProps {
+  field: DocField;
+  file: File | null;
+  uploaded: boolean;
+  onChange: (field: DocField, file: File | null) => void;
+}
+
+function UploadBtn({ field, file, uploaded, onChange }: UploadBtnProps) {
+  return (
+    <label
+      htmlFor={`file-${field}`}
+      className="cursor-pointer flex items-center justify-center w-9 h-9 rounded-md border border-input hover:bg-muted transition-colors shrink-0"
+      title={file ? file.name : `Anexar ${docLabels[field]}`}
+    >
+      {uploaded ? (
+        <CheckCircle2 className="h-4 w-4 text-green-500" />
+      ) : file ? (
+        <Paperclip className="h-4 w-4 text-sky-500" />
+      ) : (
+        <Paperclip className="h-4 w-4 text-muted-foreground" />
+      )}
+      <input
+        id={`file-${field}`}
+        type="file"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+        className="sr-only"
+        onChange={(e) => {
+          onChange(field, e.target.files?.[0] ?? null);
+          e.target.value = "";
+        }}
+      />
+    </label>
+  );
+}
 
 export function AddPropriedade({ clienteId }: { clienteId: string }) {
   const router = useRouter();
@@ -19,6 +63,13 @@ export function AddPropriedade({ clienteId }: { clienteId: string }) {
   const [erros, setErros] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  const [files, setFiles] = useState<FilesState>(emptyFiles);
+  const [uploaded, setUploaded] = useState<UploadedState>(emptyUploaded);
+
+  function handleFileChange(field: DocField, file: File | null) {
+    setFiles((f) => ({ ...f, [field]: file }));
+    setUploaded((u) => ({ ...u, [field]: false }));
+  }
 
   async function handleCepChange(value: string) {
     const formatted = formatarCep(value);
@@ -45,7 +96,20 @@ export function AddPropriedade({ clienteId }: { clienteId: string }) {
     return Object.keys(e).length === 0;
   }
 
-  async function handleSalvar(ev: React.FormEvent) {
+  async function uploadDoc(field: DocField, propriedadeId: string) {
+    const file = files[field];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("arquivo", file);
+    fd.append("tipo", docLabels[field]);
+    fd.append("propriedadeId", propriedadeId);
+    fd.append("clienteId", clienteId);
+    const res = await fetch("/api/documentos", { method: "POST", body: fd });
+    if (res.ok) setUploaded((u) => ({ ...u, [field]: true }));
+    else toast.error(`Erro ao enviar arquivo de ${docLabels[field]}`);
+  }
+
+  async function handleSalvar(ev: { preventDefault(): void }) {
     ev.preventDefault();
     if (!validar()) return;
     setSaving(true);
@@ -53,22 +117,41 @@ export function AddPropriedade({ clienteId }: { clienteId: string }) {
       const res = await fetch("/api/propriedades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, clienteId, area: form.area ? parseFloat(form.area) : null, cep: form.cep || null, uf: form.uf || null }),
+        body: JSON.stringify({
+          ...form,
+          clienteId,
+          area: form.area ? parseFloat(form.area) : null,
+          cep: form.cep || null,
+          uf: form.uf || null,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error); return; }
+
+      await Promise.all((["matricula", "car", "ccir", "mapa"] as DocField[]).map((f) => uploadDoc(f, data.id)));
+
       toast.success("Propriedade cadastrada!");
       setOpen(false);
       setForm(empty);
+      setFiles(emptyFiles);
+      setUploaded(emptyUploaded);
       router.refresh();
     } finally {
       setSaving(false);
     }
   }
 
+  function handleOpen() {
+    setForm(empty);
+    setErros({});
+    setFiles(emptyFiles);
+    setUploaded(emptyUploaded);
+    setOpen(true);
+  }
+
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => { setForm(empty); setErros({}); setOpen(true); }}>
+      <Button size="sm" variant="outline" onClick={handleOpen}>
         <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
       </Button>
 
@@ -111,19 +194,49 @@ export function AddPropriedade({ clienteId }: { clienteId: string }) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="ap-matricula">Matrícula</Label>
-                <Input id="ap-matricula" value={form.matricula} onChange={(e) => setForm((f) => ({ ...f, matricula: e.target.value }))} />
+                <div className="flex items-center gap-1.5">
+                  <Input id="ap-matricula" value={form.matricula} onChange={(e) => setForm((f) => ({ ...f, matricula: e.target.value }))} />
+                  <UploadBtn field="matricula" file={files.matricula} uploaded={uploaded.matricula} onChange={handleFileChange} />
+                </div>
+                {files.matricula && !uploaded.matricula && (
+                  <p className="text-xs text-muted-foreground truncate">{files.matricula.name}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="ap-car">CAR</Label>
-                <Input id="ap-car" value={form.car} onChange={(e) => setForm((f) => ({ ...f, car: e.target.value }))} />
+                <div className="flex items-center gap-1.5">
+                  <Input id="ap-car" value={form.car} onChange={(e) => setForm((f) => ({ ...f, car: e.target.value }))} />
+                  <UploadBtn field="car" file={files.car} uploaded={uploaded.car} onChange={handleFileChange} />
+                </div>
+                {files.car && !uploaded.car && (
+                  <p className="text-xs text-muted-foreground truncate">{files.car.name}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="ap-ccir">CCIR</Label>
-                <Input id="ap-ccir" value={form.ccir} onChange={(e) => setForm((f) => ({ ...f, ccir: e.target.value }))} />
+                <div className="flex items-center gap-1.5">
+                  <Input id="ap-ccir" value={form.ccir} onChange={(e) => setForm((f) => ({ ...f, ccir: e.target.value }))} />
+                  <UploadBtn field="ccir" file={files.ccir} uploaded={uploaded.ccir} onChange={handleFileChange} />
+                </div>
+                {files.ccir && !uploaded.ccir && (
+                  <p className="text-xs text-muted-foreground truncate">{files.ccir.name}</p>
+                )}
               </div>
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="ap-coord">Coordenadas</Label>
                 <Input id="ap-coord" value={form.coordenadas} onChange={(e) => setForm((f) => ({ ...f, coordenadas: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Mapa</Label>
+                <div className="flex items-center gap-2">
+                  <UploadBtn field="mapa" file={files.mapa} uploaded={uploaded.mapa} onChange={handleFileChange} />
+                  {files.mapa && !uploaded.mapa && (
+                    <span className="text-xs text-muted-foreground truncate max-w-[160px]">{files.mapa.name}</span>
+                  )}
+                  {uploaded.mapa && (
+                    <span className="text-xs text-green-600">Enviado</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2">

@@ -19,7 +19,7 @@ export async function GET() {
       },
     });
 
-    const resultado = colaboradores.map((c) => ({
+    const resultado = colaboradores.map((c: (typeof colaboradores)[number]) => ({
       ...c,
       _count: {
         equipesComoMembro: c._count.equipesComoMembro + c._count.equipesComoResponsavel,

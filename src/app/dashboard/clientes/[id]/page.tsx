@@ -63,6 +63,7 @@ export default async function ClienteDetailPage({
               [
                 ["Telefone", cliente.telefone],
                 ["Email", cliente.email],
+                ["Cidade/Município", cliente.cidade],
                 ["Endereço", cliente.endereco],
                 ["Observações", cliente.observacoes],
               ] as [string, string | null | undefined][]

@@ -47,7 +47,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { nome, cpfCnpj, telefone, email, endereco, observacoes } = body;
+    const { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes } = body;
 
     if (!nome || !cpfCnpj) {
       return Response.json({ error: "Nome e CPF/CNPJ são obrigatórios" }, { status: 400 });
@@ -62,7 +62,7 @@ export async function PUT(
 
     const cliente = await prisma.cliente.update({
       where: { id },
-      data: { nome, cpfCnpj, telefone, email, endereco, observacoes },
+      data: { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes },
     });
 
     registrarLog({ usuarioId: session.id, acao: "EDITAR", entidade: "Cliente", entidadeId: id, descricao: `Editou o cliente "${nome}"` });

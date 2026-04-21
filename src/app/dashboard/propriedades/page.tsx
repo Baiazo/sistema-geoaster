@@ -17,9 +17,47 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/empty-state";
-import { Plus, Pencil, Trash2, Loader2, MapPin, Search, User, Ruler, X, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, MapPin, Search, User, Ruler, X, Lock, Paperclip, CheckCircle2 } from "lucide-react";
 import { usePermissoes } from "@/contexts/permissoes-context";
 import { buscarCep, formatarCep } from "@/lib/cep";
+
+type DocField = "matricula" | "car" | "ccir" | "mapa";
+const docLabels: Record<DocField, string> = { matricula: "Matrícula", car: "CAR", ccir: "CCIR", mapa: "Mapa" };
+
+interface UploadBtnProps {
+  field: DocField;
+  file: File | null;
+  uploaded: boolean;
+  onChange: (field: DocField, file: File | null) => void;
+}
+
+function UploadBtn({ field, file, uploaded, onChange }: UploadBtnProps) {
+  return (
+    <label
+      htmlFor={`file-prop-${field}`}
+      className="cursor-pointer flex items-center justify-center w-9 h-9 rounded-md border border-input hover:bg-muted transition-colors shrink-0"
+      title={file ? file.name : `Anexar ${docLabels[field]}`}
+    >
+      {uploaded ? (
+        <CheckCircle2 className="h-4 w-4 text-green-500" />
+      ) : file ? (
+        <Paperclip className="h-4 w-4 text-sky-500" />
+      ) : (
+        <Paperclip className="h-4 w-4 text-muted-foreground" />
+      )}
+      <input
+        id={`file-prop-${field}`}
+        type="file"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+        className="sr-only"
+        onChange={(e) => {
+          onChange(field, e.target.files?.[0] ?? null);
+          e.target.value = "";
+        }}
+      />
+    </label>
+  );
+}
 
 interface Propriedade {
   id: string;
@@ -58,6 +96,8 @@ export default function PropriedadesPage() {
   const [erros, setErros] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  const [files, setFiles] = useState<Record<DocField, File | null>>({ matricula: null, car: null, ccir: null, mapa: null });
+  const [uploaded, setUploaded] = useState<Record<DocField, boolean>>({ matricula: false, car: false, ccir: false, mapa: false });
 
   // Filtros
   const [busca, setBusca] = useState("");
@@ -112,10 +152,34 @@ export default function PropriedadesPage() {
     setFiltroCliente("todos");
   }
 
+  function resetFiles() {
+    setFiles({ matricula: null, car: null, ccir: null, mapa: null });
+    setUploaded({ matricula: false, car: false, ccir: false, mapa: false });
+  }
+
+  function handleFileChange(field: DocField, file: File | null) {
+    setFiles((f) => ({ ...f, [field]: file }));
+    setUploaded((u) => ({ ...u, [field]: false }));
+  }
+
+  async function uploadDoc(field: DocField, propriedadeId: string) {
+    const file = files[field];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("arquivo", file);
+    fd.append("tipo", docLabels[field]);
+    fd.append("propriedadeId", propriedadeId);
+    fd.append("clienteId", form.clienteId);
+    const res = await fetch("/api/documentos", { method: "POST", body: fd });
+    if (res.ok) setUploaded((u) => ({ ...u, [field]: true }));
+    else toast.error(`Erro ao enviar arquivo de ${docLabels[field]}`);
+  }
+
   function abrirCadastro() {
     setEditando(null);
     setForm({ ...emptyForm, clienteId: clienteIdParam || "" });
     setErros({});
+    resetFiles();
     setDialogOpen(true);
   }
 
@@ -145,6 +209,7 @@ export default function PropriedadesPage() {
       coordenadas: p.coordenadas || "",
     });
     setErros({});
+    resetFiles();
     setDialogOpen(true);
   }
 
@@ -157,7 +222,7 @@ export default function PropriedadesPage() {
     return Object.keys(e).length === 0;
   }
 
-  async function handleSalvar(e: React.FormEvent) {
+  async function handleSalvar(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!validar()) return;
     setSaving(true);
@@ -172,8 +237,10 @@ export default function PropriedadesPage() {
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error); return; }
+      await Promise.all((["matricula", "car", "ccir", "mapa"] as DocField[]).map((f) => uploadDoc(f, data.id)));
       toast.success(editando ? "Propriedade atualizada!" : "Propriedade cadastrada!");
       setDialogOpen(false);
+      resetFiles();
       fetchPropriedades();
     } finally {
       setSaving(false);
@@ -429,19 +496,49 @@ export default function PropriedadesPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="prop-matricula">Matrícula</Label>
-                <Input id="prop-matricula" value={form.matricula} onChange={(e) => setForm((f) => ({ ...f, matricula: e.target.value }))} />
+                <div className="flex items-center gap-1.5">
+                  <Input id="prop-matricula" value={form.matricula} onChange={(e) => setForm((f) => ({ ...f, matricula: e.target.value }))} />
+                  <UploadBtn field="matricula" file={files.matricula} uploaded={uploaded.matricula} onChange={handleFileChange} />
+                </div>
+                {files.matricula && !uploaded.matricula && (
+                  <p className="text-xs text-muted-foreground truncate">{files.matricula.name}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="prop-car">CAR</Label>
-                <Input id="prop-car" value={form.car} onChange={(e) => setForm((f) => ({ ...f, car: e.target.value }))} />
+                <div className="flex items-center gap-1.5">
+                  <Input id="prop-car" value={form.car} onChange={(e) => setForm((f) => ({ ...f, car: e.target.value }))} />
+                  <UploadBtn field="car" file={files.car} uploaded={uploaded.car} onChange={handleFileChange} />
+                </div>
+                {files.car && !uploaded.car && (
+                  <p className="text-xs text-muted-foreground truncate">{files.car.name}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="prop-ccir">CCIR</Label>
-                <Input id="prop-ccir" value={form.ccir} onChange={(e) => setForm((f) => ({ ...f, ccir: e.target.value }))} />
+                <div className="flex items-center gap-1.5">
+                  <Input id="prop-ccir" value={form.ccir} onChange={(e) => setForm((f) => ({ ...f, ccir: e.target.value }))} />
+                  <UploadBtn field="ccir" file={files.ccir} uploaded={uploaded.ccir} onChange={handleFileChange} />
+                </div>
+                {files.ccir && !uploaded.ccir && (
+                  <p className="text-xs text-muted-foreground truncate">{files.ccir.name}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="prop-coordenadas">Coordenadas</Label>
                 <Input id="prop-coordenadas" value={form.coordenadas} onChange={(e) => setForm((f) => ({ ...f, coordenadas: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Mapa</Label>
+                <div className="flex items-center gap-2">
+                  <UploadBtn field="mapa" file={files.mapa} uploaded={uploaded.mapa} onChange={handleFileChange} />
+                  {files.mapa && !uploaded.mapa && (
+                    <span className="text-xs text-muted-foreground truncate max-w-[160px]">{files.mapa.name}</span>
+                  )}
+                  {uploaded.mapa && (
+                    <span className="text-xs text-green-600">Enviado</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2">

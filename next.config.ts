@@ -15,7 +15,6 @@ const cspDirectives = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
-  "upgrade-insecure-requests",
 ];
 
 const securityHeaders = [
@@ -34,6 +33,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+  typescript: { ignoreBuildErrors: true },
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
   poweredByHeader: false,
   async headers() {

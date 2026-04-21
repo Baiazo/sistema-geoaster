@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     response.headers.set(
       "Set-Cookie",
-      `${cookie.name}=${cookie.value}; Path=${cookie.path}; Max-Age=${cookie.maxAge}; HttpOnly; SameSite=Lax${cookie.secure ? "; Secure" : ""}`
+      `${cookie.name}=${cookie.value}; Path=${cookie.path}; Max-Age=${cookie.maxAge}; HttpOnly; SameSite=Lax`
     );
 
     return response;

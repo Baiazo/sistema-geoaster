@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (!perm.cadastrarClientes) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const body = await request.json();
-    const { nome, cpfCnpj, telefone, email, endereco, observacoes } = body;
+    const { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes } = body;
 
     if (!nome || !cpfCnpj) {
       return Response.json({ error: "Nome e CPF/CNPJ são obrigatórios" }, { status: 400 });
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const cliente = await prisma.cliente.create({
-      data: { nome, cpfCnpj, telefone, email, endereco, observacoes },
+      data: { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes },
     });
 
     registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Cliente", entidadeId: cliente.id, descricao: `Criou o cliente "${nome}"` });

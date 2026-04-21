@@ -30,6 +30,7 @@ interface ImportRow {
   cpfCnpj: string;
   telefone: string;
   email: string;
+  cidade: string;
   endereco: string;
   observacoes: string;
   _erro?: string;
@@ -63,6 +64,7 @@ function parseCSV(text: string): ImportRow[] {
     cpfCnpj: ["cpfcnpj", "cpf/cnpj", "cpf_cnpj", "documento"].reduce((a, k) => (a === -1 ? headers.indexOf(k) : a), -1),
     telefone: ["telefone", "fone", "celular"].reduce((a, k) => (a === -1 ? headers.indexOf(k) : a), -1),
     email: headers.indexOf("email"),
+    cidade: ["cidade", "municipio", "município", "city"].reduce((a, k) => (a === -1 ? headers.indexOf(k) : a), -1),
     endereco: ["endereco", "endereço", "address"].reduce((a, k) => (a === -1 ? headers.indexOf(k) : a), -1),
     observacoes: ["observacoes", "observações", "obs"].reduce((a, k) => (a === -1 ? headers.indexOf(k) : a), -1),
   };
@@ -79,6 +81,7 @@ function parseCSV(text: string): ImportRow[] {
       cpfCnpj,
       telefone: idx.telefone >= 0 ? cols[idx.telefone] ?? "" : "",
       email: idx.email >= 0 ? cols[idx.email] ?? "" : "",
+      cidade: idx.cidade >= 0 ? cols[idx.cidade] ?? "" : "",
       endereco: idx.endereco >= 0 ? cols[idx.endereco] ?? "" : "",
       observacoes: idx.observacoes >= 0 ? cols[idx.observacoes] ?? "" : "",
       _erro: erros.length ? erros.join(", ") : undefined,
@@ -87,9 +90,9 @@ function parseCSV(text: string): ImportRow[] {
 }
 
 const MODELO_CSV =
-  "nome,cpfCnpj,telefone,email,endereco,observacoes\n" +
-  "João da Silva,123.456.789-00,(11) 99999-9999,joao@email.com,\"Rua das Flores, 123\",Cliente antigo\n" +
-  "Empresa XYZ Ltda,12.345.678/0001-99,(11) 3333-4444,contato@xyz.com,,\n";
+  "nome,cpfCnpj,telefone,email,cidade,endereco,observacoes\n" +
+  "João da Silva,123.456.789-00,(11) 99999-9999,joao@email.com,Goiânia,\"Rua das Flores, 123\",Cliente antigo\n" +
+  "Empresa XYZ Ltda,12.345.678/0001-99,(11) 3333-4444,contato@xyz.com,Brasília,,\n";
 
 interface Cliente {
   id: string;
@@ -97,13 +100,14 @@ interface Cliente {
   cpfCnpj: string;
   telefone?: string;
   email?: string;
+  cidade?: string;
   endereco?: string;
   observacoes?: string;
   _count?: { propriedades: number; processos: number };
 }
 
 const emptyForm = {
-  nome: "", cpfCnpj: "", telefone: "", email: "", endereco: "", observacoes: "",
+  nome: "", cpfCnpj: "", telefone: "", email: "", cidade: "", endereco: "", observacoes: "",
 };
 
 export default function ClientesPage() {
@@ -152,6 +156,7 @@ export default function ClientesPage() {
       cpfCnpj: c.cpfCnpj,
       telefone: c.telefone || "",
       email: c.email || "",
+      cidade: c.cidade || "",
       endereco: c.endereco || "",
       observacoes: c.observacoes || "",
     });
@@ -419,6 +424,14 @@ export default function ClientesPage() {
                 />
                 {erros.email && <p id="erro-email" className="text-sm text-red-500">{erros.email}</p>}
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cliente-cidade">Cidade/Município</Label>
+                <Input
+                  id="cliente-cidade"
+                  value={form.cidade}
+                  onChange={(e) => setForm((f) => ({ ...f, cidade: e.target.value }))}
+                />
+              </div>
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="cliente-endereco">Endereço</Label>
                 <Input
@@ -456,7 +469,7 @@ export default function ClientesPage() {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted text-sm">
-              <span className="text-muted-foreground">Colunas esperadas: <strong>nome</strong>, <strong>cpfCnpj</strong>, telefone, email, endereco, observacoes</span>
+              <span className="text-muted-foreground">Colunas esperadas: <strong>nome</strong>, <strong>cpfCnpj</strong>, telefone, email, cidade, endereco, observacoes</span>
               <Button variant="ghost" size="sm" onClick={downloadModelo} className="shrink-0 ml-2">
                 <Download className="mr-1.5 h-3.5 w-3.5" /> Baixar modelo
               </Button>

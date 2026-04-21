@@ -54,6 +54,7 @@ model Cliente {
   cpfCnpj     String  @unique
   telefone    String?
   email       String?
+  cidade      String?
   endereco    String?
   observacoes String?
   ativo       Boolean @default(true)

@@ -12,11 +12,13 @@ import { Plus, Loader2 } from "lucide-react";
 
 const tiposServico = [
   "Georreferenciamento",
-  "Cadastro no CAR",
+  "CAR",
   "Regularização ambiental",
+  "Licença ambiental",
   "Emissão de CCIR",
   "Processo INCRA",
-  "Licença ambiental",
+  "Mapa de uso e ocupação de solo",
+  "Inventário florestal",
   "Outros",
 ];
 
