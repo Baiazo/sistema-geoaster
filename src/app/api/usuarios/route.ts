@@ -38,6 +38,12 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Nome, email e senha são obrigatórios" }, { status: 400 });
     }
 
+    if (typeof senha !== "string" || senha.length < 8) {
+      return Response.json({ error: "Senha deve ter no mínimo 8 caracteres" }, { status: 400 });
+    }
+
+    const perfilFinal = perfilAcesso === "ADMIN" ? "ADMIN" : "USUARIO";
+
     const existente = await prisma.usuario.findUnique({ where: { email } });
     if (existente) {
       return Response.json({ error: "Email já cadastrado" }, { status: 409 });
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     const hash = await bcrypt.hash(senha, 12);
     const usuario = await prisma.usuario.create({
-      data: { nome, email, senha: hash, perfilAcesso: perfilAcesso || "USUARIO" },
+      data: { nome, email, senha: hash, perfilAcesso: perfilFinal },
       select: { id: true, nome: true, email: true, perfilAcesso: true, createdAt: true },
     });
 

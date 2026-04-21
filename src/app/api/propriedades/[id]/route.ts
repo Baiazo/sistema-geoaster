@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getPermissoesEfetivas } from "@/lib/permissoes";
 import { registrarLog } from "@/lib/auditoria";
 
 export async function GET(
@@ -10,6 +11,8 @@ export async function GET(
   try {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+    if (!perm.verPropriedades) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const { id } = await params;
     const propriedade = await prisma.propriedade.findUnique({
@@ -36,6 +39,8 @@ export async function PUT(
   try {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+    if (!perm.cadastrarPropriedades) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const { id } = await params;
     const body = await request.json();

@@ -2,8 +2,32 @@ import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import type { Permissoes } from "@/lib/permissoes";
 
-const JWT_SECRET = process.env.JWT_SECRET || "geoaster-secret-key-change-in-production";
 const COOKIE_NAME = "geoaster_token";
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "JWT_SECRET ausente ou com menos de 32 caracteres. Defina um segredo forte no .env antes de rodar em produção."
+      );
+    }
+    // Em desenvolvimento, apenas avisa no console para não travar o fluxo local.
+    // NÃO use esse fallback em produção.
+    if (!globalThis.__geoaster_jwt_dev_warned) {
+      console.warn(
+        "[auth] JWT_SECRET fraco/ausente — usando fallback de desenvolvimento. Defina JWT_SECRET no .env (>=32 chars)."
+      );
+      globalThis.__geoaster_jwt_dev_warned = true;
+    }
+    return "dev-only-insecure-fallback-do-not-use-in-production-geoaster";
+  }
+  return secret;
+}
+
+declare global {
+  var __geoaster_jwt_dev_warned: boolean | undefined;
+}
 
 export interface JWTPayload {
   id: string;
@@ -14,12 +38,12 @@ export interface JWTPayload {
 }
 
 export function signToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "8h" });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "8h", issuer: "geoaster" });
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    return jwt.verify(token, getJwtSecret(), { issuer: "geoaster" }) as JWTPayload;
   } catch {
     return null;
   }

@@ -18,6 +18,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return Response.json({ error: "Nome e email são obrigatórios" }, { status: 400 });
     }
 
+    const perfilFinal = perfilAcesso === "ADMIN" ? "ADMIN" : "USUARIO";
+
+    // Impede o último admin se auto-rebaixar ou ser desativado (deixa sistema sem admin).
+    if (session.id === id && (perfilFinal !== "ADMIN" || ativo === false)) {
+      return Response.json(
+        { error: "Você não pode rebaixar ou desativar sua própria conta de administrador" },
+        { status: 400 }
+      );
+    }
+
     const emailConflito = await prisma.usuario.findFirst({
       where: { email: email.trim(), NOT: { id } },
     });
@@ -25,14 +35,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return Response.json({ error: "Email já está em uso por outro usuário" }, { status: 409 });
     }
 
+    // Valida que `permissoes` é um objeto plano (evita persistir lixo no Json).
+    const permissoesFinal =
+      permissoes && typeof permissoes === "object" && !Array.isArray(permissoes)
+        ? permissoes
+        : {};
+
     const usuario = await prisma.usuario.update({
       where: { id },
       data: {
         nome: nome.trim(),
         email: email.trim(),
-        perfilAcesso: perfilAcesso || "USUARIO",
+        perfilAcesso: perfilFinal,
         ativo: ativo !== undefined ? Boolean(ativo) : true,
-        permissoes: permissoes ?? {},
+        permissoes: permissoesFinal,
       },
       select: { id: true, nome: true, email: true, perfilAcesso: true, ativo: true, createdAt: true, permissoes: true },
     });

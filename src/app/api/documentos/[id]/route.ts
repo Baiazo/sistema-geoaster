@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getPermissoesEfetivas } from "@/lib/permissoes";
 import { registrarLog } from "@/lib/auditoria";
 import { unlink } from "fs/promises";
 import path from "path";
@@ -13,15 +14,26 @@ export async function DELETE(
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+    if (!perm.cadastrarDocumentos) {
+      return Response.json({ error: "Sem permissão" }, { status: 403 });
+    }
+
     const { id } = await params;
     const documento = await prisma.documento.findUnique({ where: { id } });
     if (!documento) return Response.json({ error: "Documento não encontrado" }, { status: 404 });
 
-    const filePath = path.join(process.cwd(), "uploads", documento.nomeArquivo);
-    try {
-      await unlink(filePath);
-    } catch {
-      // arquivo pode não existir mais no disco
+    // Basename previne qualquer tentativa de path traversal via registro manipulado.
+    const safeName = path.basename(documento.nomeArquivo);
+    const uploadDir = path.resolve(process.cwd(), "uploads");
+    const filePath = path.resolve(uploadDir, safeName);
+
+    if (filePath.startsWith(uploadDir + path.sep) || filePath === uploadDir) {
+      try {
+        await unlink(filePath);
+      } catch {
+        // arquivo pode não existir mais no disco
+      }
     }
 
     await prisma.documento.delete({ where: { id } });

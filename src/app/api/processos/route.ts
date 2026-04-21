@@ -14,13 +14,17 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = request.nextUrl;
     const clienteId = searchParams.get("clienteId");
-    const status = searchParams.get("status");
+    const statusParam = searchParams.get("status");
+    const statusValidos = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDO", "CANCELADO"] as const;
+    const status = statusValidos.includes(statusParam as typeof statusValidos[number])
+      ? (statusParam as typeof statusValidos[number])
+      : null;
     const busca = searchParams.get("busca") || "";
 
     const processos = await prisma.processo.findMany({
       where: {
         ...(clienteId ? { clienteId } : {}),
-        ...(status ? { status: status as "PENDENTE" | "EM_ANDAMENTO" | "CONCLUIDO" | "CANCELADO" } : {}),
+        ...(status ? { status } : {}),
         ...(busca
           ? {
               OR: [

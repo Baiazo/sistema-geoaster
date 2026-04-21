@@ -4,13 +4,34 @@ import { prisma } from "@/lib/prisma";
 import { signToken, setAuthCookie } from "@/lib/auth";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
 import { registrarLog } from "@/lib/auditoria";
+import { rateLimit, getClientIp } from "@/lib/ratelimit";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+
+    // Rate limit por IP: 8 tentativas por minuto
+    const ipLimit = rateLimit(`login:ip:${ip}`, 8, 60);
+    if (!ipLimit.ok) {
+      return Response.json(
+        { error: "Muitas tentativas. Tente novamente em alguns instantes." },
+        { status: 429, headers: { "Retry-After": String(ipLimit.retryAfterSeconds) } }
+      );
+    }
+
     const { email, senha } = await request.json();
 
-    if (!email || !senha) {
+    if (!email || !senha || typeof email !== "string" || typeof senha !== "string") {
       return Response.json({ error: "Email e senha são obrigatórios" }, { status: 400 });
+    }
+
+    // Rate limit adicional por email (evita spray de senhas num alvo único)
+    const emailLimit = rateLimit(`login:email:${email.toLowerCase()}`, 10, 300);
+    if (!emailLimit.ok) {
+      return Response.json(
+        { error: "Muitas tentativas para este usuário. Tente novamente em alguns minutos." },
+        { status: 429, headers: { "Retry-After": String(emailLimit.retryAfterSeconds) } }
+      );
     }
 
     const usuario = await prisma.usuario.findUnique({ where: { email } });

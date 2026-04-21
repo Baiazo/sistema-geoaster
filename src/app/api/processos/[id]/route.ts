@@ -1,8 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getPermissoesEfetivas } from "@/lib/permissoes";
 import { enviarWhatsApp, montarMensagemProtocolo } from "@/lib/whatsapp";
 import { registrarLog } from "@/lib/auditoria";
+
+const STATUS_VALIDOS = new Set(["PENDENTE", "EM_ANDAMENTO", "CONCLUIDO", "CANCELADO"] as const);
+type StatusProcesso = "PENDENTE" | "EM_ANDAMENTO" | "CONCLUIDO" | "CANCELADO";
 
 export async function GET(
   _request: NextRequest,
@@ -11,6 +15,8 @@ export async function GET(
   try {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+    if (!perm.verProcessos) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const { id } = await params;
     const processo = await prisma.processo.findUnique({
@@ -44,27 +50,35 @@ export async function PUT(
   try {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+    if (!perm.cadastrarProcessos) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const { id } = await params;
     const body = await request.json();
     const { status, observacoes, descricaoHistorico, dataFim, tipoServico, propriedadeId, equipeId, valor } = body;
 
+    if (status !== undefined && status !== null && !STATUS_VALIDOS.has(status)) {
+      return Response.json({ error: "Status inválido" }, { status: 400 });
+    }
+
+    const statusTyped = status as StatusProcesso | undefined;
+
     const processo = await prisma.processo.update({
       where: { id },
       data: {
-        ...(status ? { status } : {}),
+        ...(statusTyped ? { status: statusTyped } : {}),
         ...(observacoes !== undefined ? { observacoes } : {}),
         ...(dataFim !== undefined ? { dataFim: dataFim ? new Date(dataFim) : null } : {}),
         ...(tipoServico ? { tipoServico } : {}),
         ...(propriedadeId !== undefined ? { propriedadeId: propriedadeId || null } : {}),
         ...(equipeId !== undefined ? { equipeId: equipeId || null } : {}),
         ...(valor !== undefined ? { valor: valor ? Number(valor) : null } : {}),
-        ...(status
+        ...(statusTyped
           ? {
               historico: {
                 create: {
-                  descricao: descricaoHistorico || `Status alterado para ${status}`,
-                  status,
+                  descricao: descricaoHistorico || `Status alterado para ${statusTyped}`,
+                  status: statusTyped,
                 },
               },
             }
@@ -77,14 +91,13 @@ export async function PUT(
       },
     });
 
-    registrarLog({ usuarioId: session.id, acao: "EDITAR", entidade: "Processo", entidadeId: id, descricao: status ? `Atualizou processo ${processo.protocolo} → status ${status}` : `Editou o processo ${processo.protocolo}` });
+    registrarLog({ usuarioId: session.id, acao: "EDITAR", entidade: "Processo", entidadeId: id, descricao: statusTyped ? `Atualizou processo ${processo.protocolo} → status ${statusTyped}` : `Editou o processo ${processo.protocolo}` });
 
-    // Dispara notificação WhatsApp se status mudou e cliente tem telefone
-    if (status && processo.cliente.telefone) {
+    if (statusTyped && processo.cliente.telefone) {
       const mensagem = montarMensagemProtocolo({
         nomeCliente: processo.cliente.nome,
         nomeServico: processo.tipoServico,
-        status,
+        status: statusTyped,
         protocolo: processo.protocolo,
       });
       enviarWhatsApp(processo.cliente.telefone, mensagem).catch(() => {});

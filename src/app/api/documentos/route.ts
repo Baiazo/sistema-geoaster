@@ -114,12 +114,19 @@ export async function POST(request: NextRequest) {
         nomeOriginal: arquivo.name,
         tipo,
         tamanho: arquivo.size,
-        caminho: `/uploads/${nomeArquivo}`,
+        caminho: "", // será preenchido abaixo com a URL da rota protegida
         clienteId: clienteId || null,
         propriedadeId: propriedadeId || null,
         processoId: processoId || null,
       },
     });
+
+    // URL de download passa por rota autenticada — nunca expor o arquivo direto.
+    const documentoAtualizado = await prisma.documento.update({
+      where: { id: documento.id },
+      data: { caminho: `/api/documentos/${documento.id}/download` },
+    });
+    Object.assign(documento, documentoAtualizado);
 
     registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Documento", entidadeId: documento.id, descricao: `Fez upload de "${arquivo.name}" (${tipo})` });
     return Response.json(documento, { status: 201 });
