@@ -168,6 +168,16 @@ model HistoricoProcesso {
   @@map("historico_processos")
 }
 
+model MensagemDoDia {
+  id         String   @id @default(cuid())
+  conteudo   String
+  ativa      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("mensagens_do_dia")
+}
+
 model Documento {
   id            String   @id @default(cuid())
   clienteId     String?

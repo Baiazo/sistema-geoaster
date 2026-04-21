@@ -5,7 +5,8 @@ import { useTheme } from "@/components/theme-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
-import { Users, MapPin, FileText, FolderOpen, BarChart2, Clock, Loader2, FileDown, Sheet } from "lucide-react";
+import { MensagemDoDiaCard, EditarMensagemDoDiaDialog } from "@/components/mensagem-do-dia";
+import { Users, MapPin, FileText, FolderOpen, BarChart2, Clock, Loader2, FileDown, Sheet, Sparkles } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -31,6 +32,13 @@ const STATUS_MAP: Record<string, string> = {
   CONCLUIDO: "Concluídos",
   CANCELADO: "Cancelados",
 };
+
+interface MensagemDoDia {
+  id: string;
+  conteudo: string;
+  ativa: boolean;
+  updatedAt: string;
+}
 
 interface DashboardData {
   totalClientes: number;
@@ -62,7 +70,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { valu
   );
 }
 
-export function DashboardClient({ nomeUsuario }: { nomeUsuario: string }) {
+export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string; isAdmin: boolean }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const tickColor = isDark ? "#94a3b8" : "#64748b";
@@ -73,6 +81,8 @@ export function DashboardClient({ nomeUsuario }: { nomeUsuario: string }) {
   const [loading, setLoading] = useState(true);
   const [exportingPDF, setExportingPDF] = useState(false);
   const [exportingXLS, setExportingXLS] = useState(false);
+  const [mensagem, setMensagem] = useState<MensagemDoDia | null>(null);
+  const [editandoMensagem, setEditandoMensagem] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabsRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -104,6 +114,15 @@ export function DashboardClient({ nomeUsuario }: { nomeUsuario: string }) {
   }, []);
 
   useEffect(() => { fetchData(periodo); }, [periodo, fetchData]);
+
+  useEffect(() => {
+    let cancelado = false;
+    fetch("/api/mensagem-do-dia")
+      .then((r) => r.json())
+      .then((d) => { if (!cancelado) setMensagem(d.mensagem ?? null); })
+      .catch(() => {});
+    return () => { cancelado = true; };
+  }, []);
 
   const chartData = (data?.processosPorStatus ?? []).map((p) => ({
     name: STATUS_MAP[p.status] ?? p.status,
@@ -204,7 +223,18 @@ export function DashboardClient({ nomeUsuario }: { nomeUsuario: string }) {
           <h1 className="text-2xl font-bold text-foreground">Olá, {nomeUsuario}</h1>
           <p className="text-muted-foreground mt-1">Visão geral do sistema</p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-wrap gap-2 shrink-0 justify-end">
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditandoMensagem(true)}
+              aria-label="Editar mensagem do dia"
+            >
+              <Sparkles className="mr-2 h-4 w-4 text-sky-600 dark:text-sky-300" />
+              Editar mensagem do dia
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -227,6 +257,8 @@ export function DashboardClient({ nomeUsuario }: { nomeUsuario: string }) {
           </Button>
         </div>
       </div>
+
+      {mensagem && <MensagemDoDiaCard conteudo={mensagem.conteudo} />}
 
       {/* Conteúdo capturado para exportação */}
       <div ref={contentRef}>
@@ -352,6 +384,15 @@ export function DashboardClient({ nomeUsuario }: { nomeUsuario: string }) {
       </div>
 
       </div>{/* fim contentRef */}
+
+      {isAdmin && (
+        <EditarMensagemDoDiaDialog
+          open={editandoMensagem}
+          onOpenChange={setEditandoMensagem}
+          mensagemAtual={mensagem}
+          onSaved={setMensagem}
+        />
+      )}
     </div>
   );
 }
