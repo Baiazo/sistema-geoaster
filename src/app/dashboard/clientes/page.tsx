@@ -24,6 +24,8 @@ import { EmptyState } from "@/components/empty-state";
 import { Plus, Search, Pencil, Trash2, Eye, Loader2, UserRound, Upload, Download, AlertCircle, CheckCircle2, Lock } from "lucide-react";
 import { usePermissoes } from "@/contexts/permissoes-context";
 import { maskCpfCnpj, maskTelefone } from "@/lib/masks";
+import { SETOR_CONFIG, TODOS_SETORES } from "@/lib/setores";
+import type { Setor } from "@/lib/setores";
 
 interface ImportRow {
   nome: string;
@@ -103,11 +105,13 @@ interface Cliente {
   cidade?: string;
   endereco?: string;
   observacoes?: string;
+  setores: Setor[];
   _count?: { propriedades: number; processos: number };
 }
 
 const emptyForm = {
   nome: "", cpfCnpj: "", telefone: "", email: "", cidade: "", endereco: "", observacoes: "",
+  setores: [] as Setor[],
 };
 
 export default function ClientesPage() {
@@ -159,6 +163,7 @@ export default function ClientesPage() {
       cidade: c.cidade || "",
       endereco: c.endereco || "",
       observacoes: c.observacoes || "",
+      setores: c.setores ?? [],
     });
     setErros({});
     setDialogOpen(true);
@@ -175,7 +180,7 @@ export default function ClientesPage() {
     return Object.keys(novosErros).length === 0;
   }
 
-  async function handleSalvar(e: React.FormEvent) {
+  async function handleSalvar(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!validar()) return;
     setSaving(true);
@@ -319,7 +324,7 @@ export default function ClientesPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>CPF/CNPJ</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Setores</TableHead>
                 <TableHead>Propriedades</TableHead>
                 <TableHead>Processos</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -331,7 +336,20 @@ export default function ClientesPage() {
                   <TableCell className="font-medium">{c.nome}</TableCell>
                   <TableCell>{c.cpfCnpj}</TableCell>
                   <TableCell>{c.telefone || "-"}</TableCell>
-                  <TableCell>{c.email || "-"}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(!c.setores || c.setores.length === 0) ? (
+                        <span className="text-xs text-muted-foreground">Todos</span>
+                      ) : c.setores.map((s) => {
+                        const cfg = SETOR_CONFIG[s];
+                        return (
+                          <span key={s} className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.badgeBg} ${cfg.badgeText}`}>
+                            {cfg.labelCurto}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{c._count?.propriedades ?? 0}</Badge>
                   </TableCell>
@@ -448,6 +466,31 @@ export default function ClientesPage() {
                   onChange={(e) => setForm((f) => ({ ...f, observacoes: e.target.value }))}
                   rows={3}
                 />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>Setores</Label>
+                <p className="text-xs text-muted-foreground">Nenhum selecionado = aparece em todos os setores</p>
+                <div className="flex flex-col gap-1.5 pt-1">
+                  {TODOS_SETORES.map((setor) => {
+                    const cfg = SETOR_CONFIG[setor];
+                    return (
+                      <label key={setor} className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.setores.includes(setor)}
+                          onChange={() => {
+                            const next = form.setores.includes(setor)
+                              ? form.setores.filter((s) => s !== setor)
+                              : [...form.setores, setor];
+                            setForm((f) => ({ ...f, setores: next }));
+                          }}
+                          className="h-4 w-4 rounded border-border"
+                        />
+                        <span className="text-sm">{cfg.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2">

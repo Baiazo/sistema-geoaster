@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
 import { registrarLog } from "@/lib/auditoria";
+import { TODOS_SETORES } from "@/lib/setores";
+import type { Setor } from "@/lib/setores";
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (!perm.cadastrarClientes) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const body = await request.json();
-    const { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes } = body;
+    const { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes, setores } = body;
 
     if (!nome || !cpfCnpj) {
       return Response.json({ error: "Nome e CPF/CNPJ são obrigatórios" }, { status: 400 });
@@ -57,8 +59,12 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "CPF/CNPJ já cadastrado" }, { status: 409 });
     }
 
+    const setoresFinal: Setor[] = Array.isArray(setores)
+      ? setores.filter((s: unknown) => TODOS_SETORES.includes(s as Setor))
+      : [];
+
     const cliente = await prisma.cliente.create({
-      data: { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes },
+      data: { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes, setores: setoresFinal },
     });
 
     registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Cliente", entidadeId: cliente.id, descricao: `Criou o cliente "${nome}"` });

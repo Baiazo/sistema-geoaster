@@ -39,12 +39,14 @@ export async function GET(request: NextRequest) {
     const clienteId = searchParams.get("clienteId");
     const propriedadeId = searchParams.get("propriedadeId");
     const processoId = searchParams.get("processoId");
+    const imovelId = searchParams.get("imovelId");
 
     const documentos = await prisma.documento.findMany({
       where: {
         ...(clienteId ? { clienteId } : {}),
         ...(propriedadeId ? { propriedadeId } : {}),
         ...(processoId ? { processoId } : {}),
+        ...(imovelId ? { imovelId } : {}),
       },
       include: {
         cliente: { select: { id: true, nome: true } },
@@ -74,6 +76,7 @@ export async function POST(request: NextRequest) {
     const clienteId = formData.get("clienteId") as string | null;
     const propriedadeId = formData.get("propriedadeId") as string | null;
     const processoId = formData.get("processoId") as string | null;
+    const imovelId = formData.get("imovelId") as string | null;
 
     if (!arquivo || !tipo) {
       return Response.json({ error: "Arquivo e tipo são obrigatórios" }, { status: 400 });
@@ -118,6 +121,7 @@ export async function POST(request: NextRequest) {
         clienteId: clienteId || null,
         propriedadeId: propriedadeId || null,
         processoId: processoId || null,
+        imovelId: imovelId || null,
       },
     });
 

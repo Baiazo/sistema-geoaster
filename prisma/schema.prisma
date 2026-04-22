@@ -11,6 +11,12 @@ enum PerfilAcesso {
   USUARIO
 }
 
+enum Setor {
+  GEO
+  AMBIENTAL
+  IMOVEIS
+}
+
 enum StatusProcesso {
   PENDENTE
   EM_ANDAMENTO
@@ -24,6 +30,16 @@ enum StatusOrcamento {
   REJEITADO
 }
 
+enum CategoriaImovel {
+  URBANO
+  RURAL
+}
+
+enum StatusImovel {
+  DISPONIVEL
+  VENDIDO
+}
+
 model Usuario {
   id           String       @id @default(cuid())
   nome         String
@@ -32,11 +48,13 @@ model Usuario {
   perfilAcesso PerfilAcesso @default(USUARIO)
   ativo        Boolean      @default(true)
   permissoes   Json         @default("{}")
+  setores      Setor[]      @default([])
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   logs              LogAuditoria[]
   orcamentosCriados Orcamento[]
+  imoveisResponsavel Imovel[]
 
   @@map("usuarios")
 }
@@ -64,14 +82,18 @@ model Cliente {
   cidade      String?
   endereco    String?
   observacoes String?
-  ativo       Boolean @default(true)
+  setores     Setor[]  @default([])
+  ativo       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  propriedades Propriedade[]
-  processos    Processo[]
-  orcamentos   Orcamento[]
-  documentos   Documento[]
+  propriedades  Propriedade[]
+  processos     Processo[]
+  orcamentos    Orcamento[]
+  documentos    Documento[]
+  imoveis       Imovel[]
+  imoveisInteresse ImovelInteressado[]
+  visitasImovel VisitaImovel[]
 
   @@map("clientes")
 }
@@ -88,6 +110,7 @@ model Propriedade {
   car         String?
   ccir        String?
   coordenadas String?
+  setores     Setor[]  @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -228,6 +251,7 @@ model Documento {
   clienteId     String?
   propriedadeId String?
   processoId    String?
+  imovelId      String?
   nomeArquivo   String
   nomeOriginal  String
   tipo          String
@@ -238,6 +262,62 @@ model Documento {
   cliente     Cliente?     @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   propriedade Propriedade? @relation(fields: [propriedadeId], references: [id])
   processo    Processo?    @relation(fields: [processoId], references: [id])
+  imovel      Imovel?      @relation(fields: [imovelId], references: [id], onDelete: Cascade)
 
   @@map("documentos")
+}
+
+model Imovel {
+  id              String          @id @default(cuid())
+  clienteId       String
+  corretorId      String?
+  categoria       CategoriaImovel
+  tipo            String
+  status          StatusImovel    @default(DISPONIVEL)
+  valor           Float?
+  exclusividade   Boolean         @default(false)
+  dataCaptacao    DateTime?
+  localizacao     String?
+  areaTotal       Float?
+  areaUtil        Float?
+  areaReservaLegal Float?
+  areaApp         Float?
+  areaAberta      Float?
+  areaMata        Float?
+  observacoes     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  cliente      Cliente            @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  corretor     Usuario?           @relation(fields: [corretorId], references: [id], onDelete: SetNull)
+  interessados ImovelInteressado[]
+  visitas      VisitaImovel[]
+  documentos   Documento[]
+
+  @@map("imoveis")
+}
+
+model ImovelInteressado {
+  imovelId  String
+  clienteId String
+
+  imovel  Imovel  @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@id([imovelId, clienteId])
+  @@map("imovel_interessados")
+}
+
+model VisitaImovel {
+  id          String   @id @default(cuid())
+  imovelId    String
+  clienteId   String?
+  data        DateTime
+  observacoes String?
+  createdAt   DateTime @default(now())
+
+  imovel  Imovel   @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+  cliente Cliente? @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+
+  @@map("visitas_imovel")
 }

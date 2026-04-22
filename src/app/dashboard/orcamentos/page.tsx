@@ -77,6 +77,18 @@ function formatarMoeda(valor?: number | null): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function formatarInputMoeda(input: string): string {
+  const digits = input.replace(/\D/g, "");
+  if (!digits) return "";
+  return (parseInt(digits, 10) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function parseMoedaInput(formatted: string): number | undefined {
+  if (!formatted) return undefined;
+  const n = parseFloat(formatted.replace(/\./g, "").replace(",", "."));
+  return isNaN(n) ? undefined : n;
+}
+
 export default function OrcamentosPage() {
   const permissoes = usePermissoes();
   const [orcamentos, setOrcamentos] = useState<Orcamento[]>([]);
@@ -152,7 +164,7 @@ export default function OrcamentosPage() {
         body: JSON.stringify({
           ...form,
           propriedadeId: form.propriedadeId || undefined,
-          valor: form.valor ? Number(form.valor) : undefined,
+          valor: parseMoedaInput(form.valor),
           prazoExecucaoDias: form.prazoExecucaoDias ? Number(form.prazoExecucaoDias) : undefined,
           validadeAte: form.validadeAte || undefined,
         }),
@@ -447,12 +459,11 @@ export default function OrcamentosPage() {
                 <Label htmlFor="orc-valor">Valor (R$)</Label>
                 <Input
                   id="orc-valor"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputMode="numeric"
                   placeholder="0,00"
                   value={form.valor}
-                  onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, valor: formatarInputMoeda(e.target.value) }))}
                 />
               </div>
               <div className="space-y-1.5">

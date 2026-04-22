@@ -28,6 +28,8 @@ import {
   GRUPOS_PERMISSOES,
   getPermissoesEfetivas,
 } from "@/lib/permissoes";
+import { SETOR_CONFIG, TODOS_SETORES } from "@/lib/setores";
+import type { Setor } from "@/lib/setores";
 
 interface Usuario {
   id: string;
@@ -37,31 +39,69 @@ interface Usuario {
   ativo: boolean;
   createdAt: string;
   permissoes?: Record<string, boolean>;
+  setores: Setor[];
 }
 
-const emptyCreate = { nome: "", email: "", senha: "", perfilAcesso: "USUARIO" };
+const emptyCreate = { nome: "", email: "", senha: "", perfilAcesso: "USUARIO", setores: [] as Setor[] };
+
+function SetorCheckboxes({
+  value,
+  onChange,
+}: {
+  value: Setor[];
+  onChange: (setores: Setor[]) => void;
+}) {
+  function toggle(setor: Setor) {
+    if (value.includes(setor)) {
+      onChange(value.filter((s) => s !== setor));
+    } else {
+      onChange([...value, setor]);
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Label>Setores de acesso</Label>
+      <p className="text-xs text-muted-foreground">Nenhum selecionado = acesso a todos os setores</p>
+      <div className="flex flex-col gap-2 pt-1">
+        {TODOS_SETORES.map((setor) => {
+          const cfg = SETOR_CONFIG[setor];
+          return (
+            <label key={setor} className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={value.includes(setor)}
+                onChange={() => toggle(setor)}
+                className="h-4 w-4 rounded border-border accent-current"
+              />
+              <span className="text-sm">{cfg.label}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Criar usuário
   const [criarOpen, setCriarOpen] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreate);
   const [createErros, setCreateErros] = useState<Record<string, string>>({});
   const [creating, setCreating] = useState(false);
 
-  // Editar usuário
   const [editando, setEditando] = useState<Usuario | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     nome: "", email: "", perfilAcesso: "USUARIO", ativo: true,
     permissoes: { ...PERMISSOES_PADRAO },
+    setores: [] as Setor[],
   });
   const [editErros, setEditErros] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  // Excluir
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchUsuarios = useCallback(async () => {
@@ -106,7 +146,7 @@ export default function UsuariosPage() {
     return Object.keys(e).length === 0;
   }
 
-  async function handleCriar(e: React.FormEvent) {
+  async function handleCriar(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!validarCreate()) return;
     setCreating(true);
@@ -136,12 +176,13 @@ export default function UsuariosPage() {
       perfilAcesso: u.perfilAcesso,
       ativo: u.ativo,
       permissoes: getPermissoesEfetivas(u.perfilAcesso, u.permissoes),
+      setores: u.setores ?? [],
     });
     setEditErros({});
     setEditOpen(true);
   }
 
-  async function handleEditar(e: React.FormEvent) {
+  async function handleEditar(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!editando || !validarEdit()) return;
     setSaving(true);
@@ -155,6 +196,7 @@ export default function UsuariosPage() {
           perfilAcesso: editForm.perfilAcesso,
           ativo: editForm.ativo,
           permissoes: editForm.perfilAcesso === "ADMIN" ? {} : editForm.permissoes,
+          setores: editForm.setores,
         }),
       });
       const data = await res.json();
@@ -192,11 +234,9 @@ export default function UsuariosPage() {
   function togglePermissao(chave: keyof Permissoes, val: boolean) {
     setEditForm((f) => {
       const novas = { ...f.permissoes, [chave]: val };
-      // habilitar "cadastrar" força "ver" ligado
       if (val && dependencias[chave]) {
         novas[dependencias[chave]!] = true;
       }
-      // desabilitar "ver" força "cadastrar" desligado
       const dependente = (Object.keys(dependencias) as (keyof Permissoes)[])
         .find((k) => dependencias[k] === chave);
       if (!val && dependente) {
@@ -204,6 +244,11 @@ export default function UsuariosPage() {
       }
       return { ...f, permissoes: novas };
     });
+  }
+
+  function getSetoresLabel(setores: Setor[]) {
+    if (!setores || setores.length === 0) return "Todos";
+    return setores.map((s) => SETOR_CONFIG[s].labelCurto).join(", ");
   }
 
   return (
@@ -247,6 +292,7 @@ export default function UsuariosPage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Perfil</TableHead>
+                <TableHead>Setores</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Criado em</TableHead>
                 <TableHead className="w-20 text-right">Ações</TableHead>
@@ -261,6 +307,9 @@ export default function UsuariosPage() {
                     <Badge variant={u.perfilAcesso === "ADMIN" ? "default" : "secondary"}>
                       {u.perfilAcesso === "ADMIN" ? "Administrador" : "Usuário"}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {getSetoresLabel(u.setores)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={u.ativo ? "outline" : "destructive"}>
@@ -349,6 +398,10 @@ export default function UsuariosPage() {
                 As permissões podem ser ajustadas após a criação.
               </p>
             </div>
+            <SetorCheckboxes
+              value={createForm.setores}
+              onChange={(setores) => setCreateForm((f) => ({ ...f, setores }))}
+            />
             <div className="flex justify-end gap-2 pt-1">
               <Button type="button" variant="outline" onClick={() => setCriarOpen(false)}>Cancelar</Button>
               <Button type="submit" className="bg-sky-500 hover:bg-sky-600" disabled={creating}>
@@ -403,7 +456,11 @@ export default function UsuariosPage() {
                 </Select>
               </div>
 
-              {/* Conta ativa */}
+              <SetorCheckboxes
+                value={editForm.setores}
+                onChange={(setores) => setEditForm((f) => ({ ...f, setores }))}
+              />
+
               <div className="flex items-center justify-between rounded-lg border px-4 py-3">
                 <div>
                   <p className="text-sm font-medium">Conta ativa</p>
@@ -416,7 +473,6 @@ export default function UsuariosPage() {
                 />
               </div>
 
-              {/* Permissões (somente para não-ADMINs) */}
               {editForm.perfilAcesso === "USUARIO" && (
                 <div className="space-y-4 pt-1 border-t">
                   <div className="flex items-center gap-2 pt-2">
@@ -470,7 +526,6 @@ export default function UsuariosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm delete */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>

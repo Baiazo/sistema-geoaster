@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { registrarLog } from "@/lib/auditoria";
+import { TODOS_SETORES } from "@/lib/setores";
+import type { Setor } from "@/lib/setores";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -12,7 +14,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { id } = await params;
-    const { nome, email, perfilAcesso, ativo, permissoes } = await request.json();
+    const { nome, email, perfilAcesso, ativo, permissoes, setores } = await request.json();
 
     if (!nome?.trim() || !email?.trim()) {
       return Response.json({ error: "Nome e email são obrigatórios" }, { status: 400 });
@@ -20,7 +22,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const perfilFinal = perfilAcesso === "ADMIN" ? "ADMIN" : "USUARIO";
 
-    // Impede o último admin se auto-rebaixar ou ser desativado (deixa sistema sem admin).
     if (session.id === id && (perfilFinal !== "ADMIN" || ativo === false)) {
       return Response.json(
         { error: "Você não pode rebaixar ou desativar sua própria conta de administrador" },
@@ -35,11 +36,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return Response.json({ error: "Email já está em uso por outro usuário" }, { status: 409 });
     }
 
-    // Valida que `permissoes` é um objeto plano (evita persistir lixo no Json).
     const permissoesFinal =
       permissoes && typeof permissoes === "object" && !Array.isArray(permissoes)
         ? permissoes
         : {};
+
+    const setoresFinal: Setor[] = Array.isArray(setores)
+      ? setores.filter((s: unknown) => TODOS_SETORES.includes(s as Setor))
+      : [];
 
     const usuario = await prisma.usuario.update({
       where: { id },
@@ -49,8 +53,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         perfilAcesso: perfilFinal,
         ativo: ativo !== undefined ? Boolean(ativo) : true,
         permissoes: permissoesFinal,
+        setores: setoresFinal,
       },
-      select: { id: true, nome: true, email: true, perfilAcesso: true, ativo: true, createdAt: true, permissoes: true },
+      select: { id: true, nome: true, email: true, perfilAcesso: true, ativo: true, createdAt: true, permissoes: true, setores: true },
     });
 
     registrarLog({ usuarioId: session.id, acao: "EDITAR", entidade: "Usuário", entidadeId: id, descricao: `Editou o usuário "${nome}" (${email})` });

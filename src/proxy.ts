@@ -50,6 +50,12 @@ export function proxy(request: NextRequest) {
     return applySecurityHeaders(response);
   }
 
+  // Se autenticado mas sem setor selecionado, redireciona para /setor
+  // (exceto se já estiver em /setor ou em rotas de API)
+  if (!payload.setorAtivo && pathname !== "/setor" && !pathname.startsWith("/api/")) {
+    return applySecurityHeaders(NextResponse.redirect(new URL("/setor", request.url)));
+  }
+
   return applySecurityHeaders(NextResponse.next());
 }
 

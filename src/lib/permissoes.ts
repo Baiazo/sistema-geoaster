@@ -13,6 +13,8 @@ export interface Permissoes {
   cadastrarColaboradores: boolean;
   verEquipes: boolean;
   cadastrarEquipes: boolean;
+  verImoveis: boolean;
+  cadastrarImoveis: boolean;
 }
 
 export const PERMISSOES_PADRAO: Permissoes = {
@@ -30,6 +32,8 @@ export const PERMISSOES_PADRAO: Permissoes = {
   cadastrarColaboradores: false,
   verEquipes: false,
   cadastrarEquipes: false,
+  verImoveis: false,
+  cadastrarImoveis: false,
 };
 
 const PERMISSOES_ADMIN: Permissoes = {
@@ -47,6 +51,8 @@ const PERMISSOES_ADMIN: Permissoes = {
   cadastrarColaboradores: true,
   verEquipes: true,
   cadastrarEquipes: true,
+  verImoveis: true,
+  cadastrarImoveis: true,
 };
 
 export const GRUPOS_PERMISSOES: Array<{
@@ -100,6 +106,13 @@ export const GRUPOS_PERMISSOES: Array<{
     permissoes: [
       { chave: "verEquipes", label: "Ver equipes" },
       { chave: "cadastrarEquipes", label: "Cadastrar / editar / excluir equipes" },
+    ],
+  },
+  {
+    modulo: "Imóveis",
+    permissoes: [
+      { chave: "verImoveis", label: "Ver imóveis" },
+      { chave: "cadastrarImoveis", label: "Cadastrar / editar / excluir imóveis" },
     ],
   },
 ];

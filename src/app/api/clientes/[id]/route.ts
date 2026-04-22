@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
 import { registrarLog } from "@/lib/auditoria";
+import { TODOS_SETORES } from "@/lib/setores";
+import type { Setor } from "@/lib/setores";
 
 export async function GET(
   _request: NextRequest,
@@ -47,7 +49,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes } = body;
+    const { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes, setores } = body;
 
     if (!nome || !cpfCnpj) {
       return Response.json({ error: "Nome e CPF/CNPJ são obrigatórios" }, { status: 400 });
@@ -60,9 +62,13 @@ export async function PUT(
       return Response.json({ error: "CPF/CNPJ já cadastrado" }, { status: 409 });
     }
 
+    const setoresFinal: Setor[] = Array.isArray(setores)
+      ? setores.filter((s: unknown) => TODOS_SETORES.includes(s as Setor))
+      : [];
+
     const cliente = await prisma.cliente.update({
       where: { id },
-      data: { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes },
+      data: { nome, cpfCnpj, telefone, email, cidade, endereco, observacoes, setores: setoresFinal },
     });
 
     registrarLog({ usuarioId: session.id, acao: "EDITAR", entidade: "Cliente", entidadeId: id, descricao: `Editou o cliente "${nome}"` });

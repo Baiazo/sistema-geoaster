@@ -5,12 +5,13 @@ import { signToken, setAuthCookie } from "@/lib/auth";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
 import { registrarLog } from "@/lib/auditoria";
 import { rateLimit, getClientIp } from "@/lib/ratelimit";
+import { getSetoresEfetivos } from "@/lib/setores";
+import type { Setor } from "@/lib/setores";
 
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request);
 
-    // Rate limit por IP: 8 tentativas por minuto
     const ipLimit = rateLimit(`login:ip:${ip}`, 8, 60);
     if (!ipLimit.ok) {
       return Response.json(
@@ -25,7 +26,6 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Email e senha são obrigatórios" }, { status: 400 });
     }
 
-    // Rate limit adicional por email (evita spray de senhas num alvo único)
     const emailLimit = rateLimit(`login:email:${email.toLowerCase()}`, 10, 300);
     if (!emailLimit.ok) {
       return Response.json(
@@ -46,6 +46,11 @@ export async function POST(request: NextRequest) {
     }
 
     const permissoes = getPermissoesEfetivas(usuario.perfilAcesso, usuario.permissoes);
+    const setores = getSetoresEfetivos(usuario.setores as Setor[]);
+
+    // Se tem apenas 1 setor, já entra direto; se tiver mais, setorAtivo fica null
+    // e o proxy redireciona para /setor
+    const setorAtivo = setores.length === 1 ? setores[0] : null;
 
     const token = signToken({
       id: usuario.id,
@@ -53,6 +58,8 @@ export async function POST(request: NextRequest) {
       nome: usuario.nome,
       perfilAcesso: usuario.perfilAcesso,
       permissoes,
+      setores,
+      setorAtivo,
     });
 
     registrarLog({ usuarioId: usuario.id, acao: "LOGIN", entidade: "Usuário", descricao: `Login: ${usuario.email}` });
@@ -60,6 +67,8 @@ export async function POST(request: NextRequest) {
     const cookie = setAuthCookie(token);
     const response = Response.json({
       usuario: { id: usuario.id, nome: usuario.nome, email: usuario.email, perfilAcesso: usuario.perfilAcesso },
+      setorAtivo,
+      setores,
     });
 
     response.headers.set(

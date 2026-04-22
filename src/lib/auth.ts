@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import type { Permissoes } from "@/lib/permissoes";
+import type { Setor } from "@/lib/setores";
 
 const COOKIE_NAME = "geoaster_token";
 
@@ -35,6 +36,8 @@ export interface JWTPayload {
   nome: string;
   perfilAcesso: "ADMIN" | "USUARIO";
   permissoes: Permissoes;
+  setores: Setor[];
+  setorAtivo: Setor | null;
 }
 
 export function signToken(payload: JWTPayload): string {

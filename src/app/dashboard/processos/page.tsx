@@ -60,6 +60,18 @@ const emptyForm = {
   clienteId: "", propriedadeId: "", equipeId: "", tipoServico: "", observacoes: "", valor: "",
 };
 
+function formatarInputMoeda(input: string): string {
+  const digits = input.replace(/\D/g, "");
+  if (!digits) return "";
+  return (parseInt(digits, 10) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function parseMoedaInput(formatted: string): number | undefined {
+  if (!formatted) return undefined;
+  const n = parseFloat(formatted.replace(/\./g, "").replace(",", "."));
+  return isNaN(n) ? undefined : n;
+}
+
 export default function ProcessosPage() {
   const permissoes = usePermissoes();
   const [processos, setProcessos] = useState<Processo[]>([]);
@@ -134,7 +146,7 @@ export default function ProcessosPage() {
           ...form,
           propriedadeId: form.propriedadeId || undefined,
           equipeId: form.equipeId || undefined,
-          valor: form.valor ? Number(form.valor) : undefined,
+          valor: parseMoedaInput(form.valor),
         }),
       });
       const data = await res.json();
@@ -373,12 +385,11 @@ export default function ProcessosPage() {
               <Label htmlFor="processo-valor">Valor do serviço (R$)</Label>
               <Input
                 id="processo-valor"
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                inputMode="numeric"
                 placeholder="0,00"
                 value={form.valor}
-                onChange={(e) => setForm((f) => ({ ...f, valor: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, valor: formatarInputMoeda(e.target.value) }))}
               />
             </div>
             <div className="space-y-1.5">

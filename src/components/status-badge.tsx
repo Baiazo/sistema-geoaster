@@ -5,6 +5,8 @@ const statusLabels: Record<string, string> = {
   CANCELADO: "Cancelado",
   APROVADO: "Aprovado",
   REJEITADO: "Rejeitado",
+  DISPONIVEL: "Disponível",
+  VENDIDO: "Vendido",
 };
 
 const statusColors: Record<string, string> = {
@@ -14,6 +16,8 @@ const statusColors: Record<string, string> = {
   CANCELADO: "bg-red-100 text-red-700",
   APROVADO: "bg-emerald-100 text-emerald-700",
   REJEITADO: "bg-rose-100 text-rose-700",
+  DISPONIVEL: "bg-green-100 text-green-700",
+  VENDIDO: "bg-gray-100 text-gray-600",
 };
 
 interface StatusBadgeProps {

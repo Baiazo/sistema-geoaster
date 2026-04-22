@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { registrarLog } from "@/lib/auditoria";
+import { TODOS_SETORES } from "@/lib/setores";
+import type { Setor } from "@/lib/setores";
 
 export async function GET() {
   try {
@@ -13,7 +15,7 @@ export async function GET() {
     }
 
     const usuarios = await prisma.usuario.findMany({
-      select: { id: true, nome: true, email: true, perfilAcesso: true, ativo: true, createdAt: true, permissoes: true },
+      select: { id: true, nome: true, email: true, perfilAcesso: true, ativo: true, createdAt: true, permissoes: true, setores: true },
       orderBy: { nome: "asc" },
     });
 
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Sem permissão" }, { status: 403 });
     }
 
-    const { nome, email, senha, perfilAcesso } = await request.json();
+    const { nome, email, senha, perfilAcesso, setores } = await request.json();
 
     if (!nome || !email || !senha) {
       return Response.json({ error: "Nome, email e senha são obrigatórios" }, { status: 400 });
@@ -44,6 +46,10 @@ export async function POST(request: NextRequest) {
 
     const perfilFinal = perfilAcesso === "ADMIN" ? "ADMIN" : "USUARIO";
 
+    const setoresFinal: Setor[] = Array.isArray(setores)
+      ? setores.filter((s: unknown) => TODOS_SETORES.includes(s as Setor))
+      : [];
+
     const existente = await prisma.usuario.findUnique({ where: { email } });
     if (existente) {
       return Response.json({ error: "Email já cadastrado" }, { status: 409 });
@@ -51,8 +57,8 @@ export async function POST(request: NextRequest) {
 
     const hash = await bcrypt.hash(senha, 12);
     const usuario = await prisma.usuario.create({
-      data: { nome, email, senha: hash, perfilAcesso: perfilFinal },
-      select: { id: true, nome: true, email: true, perfilAcesso: true, createdAt: true },
+      data: { nome, email, senha: hash, perfilAcesso: perfilFinal, setores: setoresFinal },
+      select: { id: true, nome: true, email: true, perfilAcesso: true, createdAt: true, setores: true },
     });
 
     registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Usuário", entidadeId: usuario.id, descricao: `Criou o usuário "${nome}" (${email})` });
