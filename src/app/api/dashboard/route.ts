@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getPermissoesEfetivas } from "@/lib/permissoes";
 
 function getDateFrom(periodo: string): Date | undefined {
   const now = new Date();
@@ -35,6 +36,8 @@ export async function GET(request: NextRequest) {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
+    const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
+
     const periodo = request.nextUrl.searchParams.get("periodo") || "all";
     const from = getDateFrom(periodo);
     const dateFilter = from ? { createdAt: { gte: from } } : {};
@@ -52,28 +55,40 @@ export async function GET(request: NextRequest) {
       processosRecentes,
       orcamentosVencendo,
     ] = await Promise.all([
-      prisma.cliente.count({ where: { ativo: true, ...dateFilter } }),
-      prisma.propriedade.count({ where: dateFilter }),
-      prisma.processo.count({ where: dateFilter }),
-      prisma.documento.count({ where: dateFilter }),
-      prisma.processo.groupBy({ by: ["status"], _count: true, where: dateFilter }),
-      prisma.processo.findMany({
-        take: 5,
-        orderBy: { createdAt: "desc" },
-        where: dateFilter,
-        include: { cliente: { select: { nome: true } } },
-      }),
-      prisma.orcamento.findMany({
-        where: {
-          status: "PENDENTE",
-          validadeAte: { not: null, lte: limiteVencimento },
-        },
-        orderBy: { validadeAte: "asc" },
-        take: 5,
-        include: {
-          cliente: { select: { nome: true } },
-        },
-      }),
+      perm.verClientes
+        ? prisma.cliente.count({ where: { ativo: true, ...dateFilter } })
+        : Promise.resolve(null),
+      perm.verPropriedades
+        ? prisma.propriedade.count({ where: dateFilter })
+        : Promise.resolve(null),
+      perm.verProcessos
+        ? prisma.processo.count({ where: dateFilter })
+        : Promise.resolve(null),
+      perm.verDocumentos
+        ? prisma.documento.count({ where: dateFilter })
+        : Promise.resolve(null),
+      perm.verProcessos
+        ? prisma.processo.groupBy({ by: ["status"], _count: true, where: dateFilter })
+        : Promise.resolve([]),
+      perm.verProcessos
+        ? prisma.processo.findMany({
+            take: 5,
+            orderBy: { createdAt: "desc" },
+            where: dateFilter,
+            include: { cliente: { select: { nome: true } } },
+          })
+        : Promise.resolve([]),
+      perm.verOrcamentos
+        ? prisma.orcamento.findMany({
+            where: {
+              status: "PENDENTE",
+              validadeAte: { not: null, lte: limiteVencimento },
+            },
+            orderBy: { validadeAte: "asc" },
+            take: 5,
+            include: { cliente: { select: { nome: true } } },
+          })
+        : Promise.resolve([]),
     ]);
 
     return Response.json({

@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { MensagemDoDiaCard, EditarMensagemDoDiaDialog } from "@/components/mensagem-do-dia";
 import Link from "next/link";
 import { Users, MapPin, FileText, FolderOpen, BarChart2, Clock, Loader2, FileDown, Sheet, Sparkles, AlertTriangle } from "lucide-react";
+import { usePermissoes } from "@/contexts/permissoes-context";
 import {
   BarChart,
   Bar,
@@ -90,6 +91,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { valu
 
 export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string; isAdmin: boolean }) {
   const { theme } = useTheme();
+  const permissoes = usePermissoes();
   const isDark = theme === "dark";
   const tickColor = isDark ? "#94a3b8" : "#64748b";
   const gridColor = isDark ? "#1e293b" : "#e2e8f0";
@@ -306,30 +308,37 @@ export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string;
       </div>
 
       {/* Cards de indicadores */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Clientes", value: data?.totalClientes, icon: Users },
-          { label: "Propriedades", value: data?.totalPropriedades, icon: MapPin },
-          { label: "Processos", value: data?.totalProcessos, icon: FileText },
-          { label: "Documentos", value: data?.totalDocumentos, icon: FolderOpen },
-        ].map(({ label, value, icon: Icon }) => (
-          <Card key={label} className="shadow-sm hover:shadow-md transition-shadow duration-200">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-              <Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : (
-                <div className="text-2xl font-bold">{value ?? 0}</div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {[
+        { label: "Clientes", value: data?.totalClientes, icon: Users, visivel: permissoes.verClientes },
+        { label: "Propriedades", value: data?.totalPropriedades, icon: MapPin, visivel: permissoes.verPropriedades },
+        { label: "Processos", value: data?.totalProcessos, icon: FileText, visivel: permissoes.verProcessos },
+        { label: "Documentos", value: data?.totalDocumentos, icon: FolderOpen, visivel: permissoes.verDocumentos },
+      ].some((c) => c.visivel) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: "Clientes", value: data?.totalClientes, icon: Users, visivel: permissoes.verClientes },
+            { label: "Propriedades", value: data?.totalPropriedades, icon: MapPin, visivel: permissoes.verPropriedades },
+            { label: "Processos", value: data?.totalProcessos, icon: FileText, visivel: permissoes.verProcessos },
+            { label: "Documentos", value: data?.totalDocumentos, icon: FolderOpen, visivel: permissoes.verDocumentos },
+          ].filter((c) => c.visivel).map(({ label, value, icon: Icon }) => (
+            <Card key={label} className="shadow-sm hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <div className="text-2xl font-bold">{value ?? 0}</div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {permissoes.verProcessos && <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico de barras */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
@@ -399,10 +408,10 @@ export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string;
             )}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
       {/* Orçamentos próximos do vencimento */}
-      {(data?.orcamentosVencendo ?? []).length > 0 && (
+      {permissoes.verOrcamentos && (data?.orcamentosVencendo ?? []).length > 0 && (
         <Card className="shadow-sm mt-6 border-amber-200 dark:border-amber-900/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
