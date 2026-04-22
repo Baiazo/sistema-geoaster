@@ -110,7 +110,7 @@ export default function ImovelDetailPage({ params }: { params: Promise<{ id: str
   useEffect(() => { fetchImovel(); }, [fetchImovel]);
 
   useEffect(() => {
-    fetch("/api/clientes").then((r) => r.json()).then(setClientes).catch(() => {});
+    fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then((d) => setClientes(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   async function handleStatus(novoStatus: string) {

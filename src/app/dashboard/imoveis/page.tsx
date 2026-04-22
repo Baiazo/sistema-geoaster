@@ -89,8 +89,8 @@ export default function ImoveisPage() {
   }, [fetchImoveis]);
 
   useEffect(() => {
-    fetch("/api/clientes").then((r) => r.json()).then(setClientes).catch(() => {});
-    fetch("/api/usuarios").then((r) => r.json()).then(setUsuarios).catch(() => {});
+    fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then((d) => setClientes(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch("/api/usuarios").then((r) => r.ok ? r.json() : []).then((d) => setUsuarios(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   function abrirCadastro() {
