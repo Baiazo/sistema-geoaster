@@ -18,6 +18,12 @@ enum StatusProcesso {
   CANCELADO
 }
 
+enum StatusOrcamento {
+  PENDENTE
+  APROVADO
+  REJEITADO
+}
+
 model Usuario {
   id           String       @id @default(cuid())
   nome         String
@@ -29,7 +35,8 @@ model Usuario {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  logs LogAuditoria[]
+  logs              LogAuditoria[]
+  orcamentosCriados Orcamento[]
 
   @@map("usuarios")
 }
@@ -63,6 +70,7 @@ model Cliente {
 
   propriedades Propriedade[]
   processos    Processo[]
+  orcamentos   Orcamento[]
   documentos   Documento[]
 
   @@map("clientes")
@@ -85,6 +93,7 @@ model Propriedade {
 
   cliente    Cliente    @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   processos  Processo[]
+  orcamentos Orcamento[]
   documentos Documento[]
 
   @@map("propriedades")
@@ -153,8 +162,43 @@ model Processo {
   equipe      Equipe?      @relation(fields: [equipeId], references: [id])
   historico   HistoricoProcesso[]
   documentos  Documento[]
+  orcamento   Orcamento?
 
   @@map("processos")
+}
+
+model Orcamento {
+  id                 String          @id @default(cuid())
+  protocolo          String          @unique
+  clienteId          String
+  propriedadeId      String?
+  tipoServico        String
+  descricao          String?
+  valor              Float?
+  condicoesPagamento String?
+  prazoExecucaoDias  Int?
+  validadeAte        DateTime?
+  observacoes        String?
+  status             StatusOrcamento @default(PENDENTE)
+  motivoRejeicao     String?
+  processoId         String?         @unique
+  usuarioId          String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  cliente     Cliente      @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  propriedade Propriedade? @relation(fields: [propriedadeId], references: [id])
+  processo    Processo?    @relation(fields: [processoId], references: [id])
+  criadoPor   Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@map("orcamentos")
+}
+
+model SequenciaProtocolo {
+  ano           Int @id
+  ultimoNumero  Int @default(0)
+
+  @@map("sequencia_protocolo")
 }
 
 model HistoricoProcesso {

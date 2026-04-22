@@ -39,6 +39,10 @@ export async function GET(request: NextRequest) {
     const from = getDateFrom(periodo);
     const dateFilter = from ? { createdAt: { gte: from } } : {};
 
+    const agora = new Date();
+    const limiteVencimento = new Date(agora);
+    limiteVencimento.setDate(limiteVencimento.getDate() + 7);
+
     const [
       totalClientes,
       totalPropriedades,
@@ -46,6 +50,7 @@ export async function GET(request: NextRequest) {
       totalDocumentos,
       processosPorStatus,
       processosRecentes,
+      orcamentosVencendo,
     ] = await Promise.all([
       prisma.cliente.count({ where: { ativo: true, ...dateFilter } }),
       prisma.propriedade.count({ where: dateFilter }),
@@ -58,6 +63,17 @@ export async function GET(request: NextRequest) {
         where: dateFilter,
         include: { cliente: { select: { nome: true } } },
       }),
+      prisma.orcamento.findMany({
+        where: {
+          status: "PENDENTE",
+          validadeAte: { not: null, lte: limiteVencimento },
+        },
+        orderBy: { validadeAte: "asc" },
+        take: 5,
+        include: {
+          cliente: { select: { nome: true } },
+        },
+      }),
     ]);
 
     return Response.json({
@@ -67,6 +83,7 @@ export async function GET(request: NextRequest) {
       totalDocumentos,
       processosPorStatus,
       processosRecentes,
+      orcamentosVencendo,
     });
   } catch (error) {
     console.error("[GET /api/dashboard]", error);

@@ -10,18 +10,18 @@ export async function GET(request: NextRequest) {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
     const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
-    if (!perm.verProcessos) return Response.json({ error: "Sem permissão" }, { status: 403 });
+    if (!perm.verOrcamentos) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const { searchParams } = request.nextUrl;
     const clienteId = searchParams.get("clienteId");
     const statusParam = searchParams.get("status");
-    const statusValidos = ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDO", "CANCELADO"] as const;
+    const statusValidos = ["PENDENTE", "APROVADO", "REJEITADO"] as const;
     const status = statusValidos.includes(statusParam as typeof statusValidos[number])
       ? (statusParam as typeof statusValidos[number])
       : null;
     const busca = searchParams.get("busca") || "";
 
-    const processos = await prisma.processo.findMany({
+    const orcamentos = await prisma.orcamento.findMany({
       where: {
         ...(clienteId ? { clienteId } : {}),
         ...(status ? { status } : {}),
@@ -38,14 +38,15 @@ export async function GET(request: NextRequest) {
       include: {
         cliente: { select: { id: true, nome: true } },
         propriedade: { select: { id: true, nome: true } },
-        equipe: { select: { id: true, nome: true } },
+        processo: { select: { id: true, protocolo: true, status: true } },
+        criadoPor: { select: { id: true, nome: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return Response.json(processos);
+    return Response.json(orcamentos);
   } catch (error) {
-    console.error("[GET /api/processos]", error);
+    console.error("[GET /api/orcamentos]", error);
     return Response.json({ error: "Erro interno do servidor" }, { status: 500 });
   }
 }
@@ -55,10 +56,20 @@ export async function POST(request: NextRequest) {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
     const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
-    if (!perm.cadastrarProcessos) return Response.json({ error: "Sem permissão" }, { status: 403 });
+    if (!perm.cadastrarOrcamentos) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
     const body = await request.json();
-    const { clienteId, propriedadeId, equipeId, tipoServico, observacoes, valor } = body;
+    const {
+      clienteId,
+      propriedadeId,
+      tipoServico,
+      descricao,
+      valor,
+      condicoesPagamento,
+      prazoExecucaoDias,
+      validadeAte,
+      observacoes,
+    } = body;
 
     if (!clienteId || !tipoServico) {
       return Response.json({ error: "Cliente e tipo de serviço são obrigatórios" }, { status: 400 });
@@ -66,40 +77,44 @@ export async function POST(request: NextRequest) {
 
     const protocolo = await gerarProtocolo();
 
-    const processo = await prisma.processo.create({
+    const orcamento = await prisma.orcamento.create({
       data: {
         protocolo,
         clienteId,
         propriedadeId: propriedadeId || null,
-        equipeId: equipeId || null,
         tipoServico,
-        observacoes,
-        valor: valor ? Number(valor) : null,
-        historico: {
-          create: {
-            descricao: "Processo criado",
-            status: "PENDENTE",
-          },
-        },
+        descricao: descricao || null,
+        valor: valor !== undefined && valor !== null && valor !== "" ? Number(valor) : null,
+        condicoesPagamento: condicoesPagamento || null,
+        prazoExecucaoDias:
+          prazoExecucaoDias !== undefined && prazoExecucaoDias !== null && prazoExecucaoDias !== ""
+            ? Number(prazoExecucaoDias)
+            : null,
+        validadeAte: validadeAte ? new Date(validadeAte) : null,
+        observacoes: observacoes || null,
+        usuarioId: session.id,
       },
       include: {
         cliente: { select: { id: true, nome: true } },
         propriedade: { select: { id: true, nome: true } },
-        equipe: { select: { id: true, nome: true } },
+        criadoPor: { select: { id: true, nome: true } },
       },
     });
 
-    if (propriedadeId) {
-      await prisma.documento.updateMany({
-        where: { propriedadeId, processoId: null },
-        data: { processoId: processo.id },
-      });
-    }
+    // TODO: integrar envio via WhatsApp (API externa) — disparar proposta ao cliente
+    // assim que o orçamento for criado, usando orcamento.protocolo e dados do cliente.
 
-    registrarLog({ usuarioId: session.id, acao: "CRIAR", entidade: "Processo", entidadeId: processo.id, descricao: `Criou o processo ${processo.protocolo} — ${tipoServico}` });
-    return Response.json(processo, { status: 201 });
+    registrarLog({
+      usuarioId: session.id,
+      acao: "CRIAR",
+      entidade: "Orcamento",
+      entidadeId: orcamento.id,
+      descricao: `Criou o orçamento ${orcamento.protocolo} — ${tipoServico}`,
+    });
+
+    return Response.json(orcamento, { status: 201 });
   } catch (error) {
-    console.error("[POST /api/processos]", error);
+    console.error("[POST /api/orcamentos]", error);
     return Response.json({ error: "Erro interno do servidor" }, { status: 500 });
   }
 }

@@ -3,6 +3,8 @@ const statusLabels: Record<string, string> = {
   EM_ANDAMENTO: "Em andamento",
   CONCLUIDO: "Concluído",
   CANCELADO: "Cancelado",
+  APROVADO: "Aprovado",
+  REJEITADO: "Rejeitado",
 };
 
 const statusColors: Record<string, string> = {
@@ -10,6 +12,8 @@ const statusColors: Record<string, string> = {
   EM_ANDAMENTO: "bg-blue-100 text-blue-700",
   CONCLUIDO: "bg-green-100 text-green-700",
   CANCELADO: "bg-red-100 text-red-700",
+  APROVADO: "bg-emerald-100 text-emerald-700",
+  REJEITADO: "bg-rose-100 text-rose-700",
 };
 
 interface StatusBadgeProps {

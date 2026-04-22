@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { MensagemDoDiaCard, EditarMensagemDoDiaDialog } from "@/components/mensagem-do-dia";
-import { Users, MapPin, FileText, FolderOpen, BarChart2, Clock, Loader2, FileDown, Sheet, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Users, MapPin, FileText, FolderOpen, BarChart2, Clock, Loader2, FileDown, Sheet, Sparkles, AlertTriangle } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -53,6 +54,23 @@ interface DashboardData {
     tipoServico: string;
     cliente: { nome: string };
   }[];
+  orcamentosVencendo: {
+    id: string;
+    protocolo: string;
+    tipoServico: string;
+    validadeAte: string | null;
+    valor: number | null;
+    cliente: { nome: string };
+  }[];
+}
+
+function diasAteVencimento(validade: string | null): number | null {
+  if (!validade) return null;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const vencimento = new Date(validade);
+  vencimento.setHours(0, 0, 0, 0);
+  return Math.round((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 // Tooltip customizado para o gráfico de barras
@@ -382,6 +400,55 @@ export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string;
           </CardContent>
         </Card>
       </div>
+
+      {/* Orçamentos próximos do vencimento */}
+      {(data?.orcamentosVencendo ?? []).length > 0 && (
+        <Card className="shadow-sm mt-6 border-amber-200 dark:border-amber-900/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Orçamentos próximos do vencimento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(data?.orcamentosVencendo ?? []).map((o) => {
+              const dias = diasAteVencimento(o.validadeAte);
+              const vencido = dias !== null && dias < 0;
+              const hoje = dias === 0;
+              const label = vencido
+                ? `Vencido há ${Math.abs(dias!)} dia(s)`
+                : hoje
+                ? "Vence hoje"
+                : `Vence em ${dias} dia(s)`;
+              return (
+                <Link
+                  key={o.id}
+                  href={`/dashboard/orcamentos/${o.id}`}
+                  className="flex items-start justify-between gap-2 rounded-md px-2 py-2 -mx-2 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium font-mono">{o.protocolo}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {o.cliente.nome} · {o.tipoServico}
+                    </p>
+                  </div>
+                  <span
+                    className={
+                      vencido
+                        ? "shrink-0 text-xs px-2 py-1 rounded-full font-medium bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                        : hoje
+                        ? "shrink-0 text-xs px-2 py-1 rounded-full font-medium bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                        : "shrink-0 text-xs px-2 py-1 rounded-full font-medium bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                    }
+                  >
+                    {label}
+                  </span>
+                </Link>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       </div>{/* fim contentRef */}
 

@@ -7,6 +7,8 @@ export interface Permissoes {
   cadastrarDocumentos: boolean;
   verProcessos: boolean;
   cadastrarProcessos: boolean;
+  verOrcamentos: boolean;
+  cadastrarOrcamentos: boolean;
   verColaboradores: boolean;
   cadastrarColaboradores: boolean;
   verEquipes: boolean;
@@ -22,6 +24,8 @@ export const PERMISSOES_PADRAO: Permissoes = {
   cadastrarDocumentos: true,
   verProcessos: true,
   cadastrarProcessos: true,
+  verOrcamentos: true,
+  cadastrarOrcamentos: true,
   verColaboradores: false,
   cadastrarColaboradores: false,
   verEquipes: false,
@@ -37,6 +41,8 @@ const PERMISSOES_ADMIN: Permissoes = {
   cadastrarDocumentos: true,
   verProcessos: true,
   cadastrarProcessos: true,
+  verOrcamentos: true,
+  cadastrarOrcamentos: true,
   verColaboradores: true,
   cadastrarColaboradores: true,
   verEquipes: true,
@@ -73,6 +79,13 @@ export const GRUPOS_PERMISSOES: Array<{
     permissoes: [
       { chave: "verProcessos", label: "Ver processos" },
       { chave: "cadastrarProcessos", label: "Criar / atualizar processos" },
+    ],
+  },
+  {
+    modulo: "Orçamentos",
+    permissoes: [
+      { chave: "verOrcamentos", label: "Ver orçamentos" },
+      { chave: "cadastrarOrcamentos", label: "Criar / editar / aprovar orçamentos" },
     ],
   },
   {

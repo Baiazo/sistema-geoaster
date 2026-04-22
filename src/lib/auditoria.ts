@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-export type AcaoLog = "CRIAR" | "EDITAR" | "EXCLUIR" | "LOGIN" | "LOGOUT";
+export type AcaoLog = "CRIAR" | "EDITAR" | "EXCLUIR" | "LOGIN" | "LOGOUT" | "APROVAR";
 
 export async function registrarLog({
   usuarioId,
