@@ -21,7 +21,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { EmptyState } from "@/components/empty-state";
-import { Plus, Loader2, Users, Trash2, Pencil, ShieldCheck } from "lucide-react";
+import { Plus, Loader2, Users, Trash2, Pencil, ShieldCheck, KeyRound } from "lucide-react";
 import {
   type Permissoes,
   PERMISSOES_PADRAO,
@@ -104,6 +104,11 @@ export default function UsuariosPage() {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  const [resetSenhaOpen, setResetSenhaOpen] = useState(false);
+  const [resetSenhaForm, setResetSenhaForm] = useState({ senha: "", confirmar: "" });
+  const [resetSenhaErros, setResetSenhaErros] = useState<Record<string, string>>({});
+  const [resetSenhaLoading, setResetSenhaLoading] = useState(false);
+
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
     try {
@@ -144,6 +149,47 @@ export default function UsuariosPage() {
     }
     setEditErros(e);
     return Object.keys(e).length === 0;
+  }
+
+  function validarResetSenha(): boolean {
+    const e: Record<string, string> = {};
+    if (!resetSenhaForm.senha) {
+      e.senha = "Senha é obrigatória";
+    } else if (resetSenhaForm.senha.length < 8) {
+      e.senha = "Senha deve ter no mínimo 8 caracteres";
+    }
+    if (resetSenhaForm.senha !== resetSenhaForm.confirmar) {
+      e.confirmar = "As senhas não coincidem";
+    }
+    setResetSenhaErros(e);
+    return Object.keys(e).length === 0;
+  }
+
+  function abrirResetSenha(u: Usuario) {
+    setEditando(u);
+    setResetSenhaForm({ senha: "", confirmar: "" });
+    setResetSenhaErros({});
+    setResetSenhaOpen(true);
+  }
+
+  async function handleResetSenha(e: { preventDefault(): void }) {
+    e.preventDefault();
+    if (!editando || !validarResetSenha()) return;
+    setResetSenhaLoading(true);
+    try {
+      const res = await fetch(`/api/usuarios/${editando.id}/redefinir-senha`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senha: resetSenhaForm.senha }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error); return; }
+      toast.success("Senha redefinida com sucesso!");
+      setResetSenhaOpen(false);
+      setResetSenhaForm({ senha: "", confirmar: "" });
+    } finally {
+      setResetSenhaLoading(false);
+    }
   }
 
   async function handleCriar(e: { preventDefault(): void }) {
@@ -325,6 +371,14 @@ export default function UsuariosPage() {
                         onClick={() => abrirEdicao(u)}
                       >
                         <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon"
+                        aria-label={`Redefinir senha de ${u.nome}`}
+                        onClick={() => abrirResetSenha(u)}
+                        className="text-muted-foreground hover:text-amber-600"
+                      >
+                        <KeyRound className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost" size="icon"
@@ -520,6 +574,49 @@ export default function UsuariosPage() {
               <Button type="submit" className="bg-sky-500 hover:bg-sky-600" disabled={saving}>
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}
                 Salvar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Redefinir senha */}
+      <Dialog open={resetSenhaOpen} onOpenChange={setResetSenhaOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redefinir Senha</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleResetSenha} className="space-y-4" noValidate>
+            <p className="text-sm text-muted-foreground">
+              Defina uma nova senha para <strong>{editando?.nome}</strong> ({editando?.email}).
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="reset-senha">Nova senha *</Label>
+              <Input
+                id="reset-senha"
+                type="password"
+                value={resetSenhaForm.senha}
+                onChange={(e) => setResetSenhaForm((f) => ({ ...f, senha: e.target.value }))}
+                aria-invalid={!!resetSenhaErros.senha}
+              />
+              {resetSenhaErros.senha && <p className="text-sm text-red-500">{resetSenhaErros.senha}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="reset-confirmar">Confirmar senha *</Label>
+              <Input
+                id="reset-confirmar"
+                type="password"
+                value={resetSenhaForm.confirmar}
+                onChange={(e) => setResetSenhaForm((f) => ({ ...f, confirmar: e.target.value }))}
+                aria-invalid={!!resetSenhaErros.confirmar}
+              />
+              {resetSenhaErros.confirmar && <p className="text-sm text-red-500">{resetSenhaErros.confirmar}</p>}
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button type="button" variant="outline" onClick={() => setResetSenhaOpen(false)}>Cancelar</Button>
+              <Button type="submit" className="bg-sky-500 hover:bg-sky-600" disabled={resetSenhaLoading}>
+                {resetSenhaLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+                Redefinir
               </Button>
             </div>
           </form>

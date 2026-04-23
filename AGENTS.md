@@ -70,6 +70,24 @@ npm run dev                   # http://localhost:3000
 
 Variáveis em `.env` (não commitado): `DATABASE_URL`, `JWT_SECRET`.
 
+## Fluxo de desenvolvimento (Git)
+
+Sempre usar **branches** para novas features. Nunca desenvolver direto na `main`.
+
+```
+1. Criar branch        → git checkout -b feat/nome-da-feature
+2. Desenvolver         → agente escreve o código
+3. Commit              → git add . && git commit -m "feat: ..."
+4. Testar              → usuário roda npm run build + npm run dev
+5. Merge (se OK)       → git checkout main && git merge feat/nome-da-feature
+```
+
+**Regras:**
+- O agente pode executar comandos git (branch, commit, merge) — o usuário autorizou.
+- Mensagens de commit em português, no padrão `tipo: descrição`.
+- Nunca adicionar `Co-Authored-By: Claude` ou créditos a ferramentas de IA.
+- Após merge, deletar a branch: `git branch -d feat/nome-da-feature`.
+
 ## Checagem antes de declarar pronto
 
 - `npm run build` passa sem erro de tipos

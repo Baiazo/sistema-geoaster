@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import Image from "next/image";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,24 +43,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-100 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-6 mt-2">
-            <Image
-              src="/logo-geoaster-branco.png"
-              alt="GeoAster"
-              width={200}
-              height={43}
-              priority
-              className="dark:hidden"
-            />
-            <Image
-              src="/logo-geoaster-branco.png"
-              alt="GeoAster"
-              width={200}
-              height={43}
-              priority
-              className="hidden dark:block"
-            />
-          </div>
+          <h1 className="text-2xl font-bold mb-6 mt-2">GeoAster</h1>
           <p className="text-sm text-muted-foreground">Acesse o sistema de gestão</p>
         </CardHeader>
         <CardContent>

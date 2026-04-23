@@ -283,6 +283,7 @@ export default function ImoveisPage() {
                 <TableHead>Categoria</TableHead>
                 <TableHead>Localização</TableHead>
                 <TableHead>Proprietário</TableHead>
+                <TableHead>Captador</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Exclusivo</TableHead>
@@ -298,6 +299,7 @@ export default function ImoveisPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{i.localizacao || "-"}</TableCell>
                   <TableCell>{i.cliente.nome}</TableCell>
+                  <TableCell>{i.corretor?.nome || "-"}</TableCell>
                   <TableCell>{formatValor(i.valor)}</TableCell>
                   <TableCell>
                     <StatusBadge status={i.status === "DISPONIVEL" ? "DISPONIVEL" : "VENDIDO"} />
