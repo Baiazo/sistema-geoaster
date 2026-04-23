@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Plus, Search, Eye, Pencil, Trash2, Loader2, Building2, Lock } from "lucide-react";
 import { usePermissoes } from "@/contexts/permissoes-context";
 import { StatusBadge } from "@/components/status-badge";
+import { buscarCep, formatarCep } from "@/lib/cep";
 
 const TIPOS_URBANO = ["Casa", "Apartamento", "Terreno"];
 const TIPOS_RURAL = ["Fazenda", "Sítio", "Chácara", "Área de plantio", "Pecuária"];
@@ -38,6 +39,13 @@ interface Imovel {
   valor?: number;
   exclusividade: boolean;
   localizacao?: string;
+  cep?: string;
+  rua?: string;
+  numero?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  areaM2?: number;
   dataCaptacao?: string;
   cliente: { id: string; nome: string };
   corretor?: { id: string; nome: string } | null;
@@ -50,7 +58,8 @@ interface Usuario { id: string; nome: string; }
 const emptyForm = {
   clienteId: "", corretorId: "", categoria: "RURAL" as "URBANO" | "RURAL", tipo: "",
   valor: "", exclusividade: false, dataCaptacao: "", localizacao: "",
-  areaTotal: "", areaUtil: "", areaReservaLegal: "", areaApp: "", areaAberta: "", areaMata: "",
+  cep: "", rua: "", numero: "", bairro: "", cidade: "", estado: "",
+  areaM2: "", areaTotal: "", areaUtil: "", areaReservaLegal: "", areaApp: "", areaAberta: "", areaMata: "",
   observacoes: "",
 };
 
@@ -69,6 +78,7 @@ export default function ImoveisPage() {
   const [erros, setErros] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [cepLoading, setCepLoading] = useState(false);
 
   const tiposDisponiveis = form.categoria === "URBANO" ? TIPOS_URBANO : TIPOS_RURAL;
 
@@ -90,7 +100,7 @@ export default function ImoveisPage() {
 
   useEffect(() => {
     fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then((d) => setClientes(Array.isArray(d) ? d : [])).catch(() => {});
-    fetch("/api/usuarios").then((r) => r.ok ? r.json() : []).then((d) => setUsuarios(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch("/api/imoveis/corretores").then((r) => r.ok ? r.json() : []).then((d) => setUsuarios(Array.isArray(d) ? d : [])).catch(() => {});
   }, []);
 
   function abrirCadastro() {
@@ -98,6 +108,26 @@ export default function ImoveisPage() {
     setForm(emptyForm);
     setErros({});
     setDialogOpen(true);
+  }
+
+  async function handleCepChange(value: string) {
+    const formatted = formatarCep(value);
+    setForm((f) => ({ ...f, cep: formatted }));
+    const digits = formatted.replace(/\D/g, "");
+    if (digits.length === 8) {
+      setCepLoading(true);
+      const data = await buscarCep(digits);
+      setCepLoading(false);
+      if (data) {
+        setForm((f) => ({
+          ...f,
+          rua: data.logradouro || f.rua,
+          bairro: data.bairro || f.bairro,
+          cidade: data.localidade || f.cidade,
+          estado: data.uf || f.estado,
+        }));
+      }
+    }
   }
 
   function abrirEdicao(i: Imovel) {
@@ -111,8 +141,15 @@ export default function ImoveisPage() {
       exclusividade: i.exclusividade,
       dataCaptacao: i.dataCaptacao ? i.dataCaptacao.slice(0, 10) : "",
       localizacao: i.localizacao ?? "",
+      cep: i.cep ?? "",
+      rua: i.rua ?? "",
+      numero: i.numero ?? "",
+      bairro: i.bairro ?? "",
+      cidade: i.cidade ?? "",
+      estado: i.estado ?? "",
+      areaM2: i.areaM2 ? i.areaM2.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "",
       areaTotal: "", areaUtil: "", areaReservaLegal: "", areaApp: "", areaAberta: "", areaMata: "",
-      observacoes: "",
+      observacoes: i.observacoes ?? "",
     });
     setErros({});
     setDialogOpen(true);
@@ -380,10 +417,59 @@ export default function ImoveisPage() {
                 </div>
               </div>
 
-              {/* Localização */}
+              {/* Endereço urbano + área m² */}
+              {form.categoria === "URBANO" && (
+                <>
+                  <div className="col-span-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Endereço</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">CEP</Label>
+                        <div className="relative">
+                          <Input placeholder="00000-000" maxLength={9}
+                            value={form.cep} onChange={(e) => handleCepChange(e.target.value)} />
+                          {cepLoading && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Área (m²)</Label>
+                        <Input type="number" min={0} step={0.01} placeholder="0,00"
+                          value={form.areaM2} onChange={(e) => setForm((f) => ({ ...f, areaM2: e.target.value }))} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Rua</Label>
+                        <Input placeholder="Logradouro"
+                          value={form.rua} onChange={(e) => setForm((f) => ({ ...f, rua: e.target.value }))} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Número</Label>
+                        <Input placeholder="Nº"
+                          value={form.numero} onChange={(e) => setForm((f) => ({ ...f, numero: e.target.value }))} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Bairro</Label>
+                        <Input placeholder="Bairro"
+                          value={form.bairro} onChange={(e) => setForm((f) => ({ ...f, bairro: e.target.value }))} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Cidade</Label>
+                        <Input placeholder="Cidade"
+                          value={form.cidade} onChange={(e) => setForm((f) => ({ ...f, cidade: e.target.value }))} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Estado</Label>
+                        <Input placeholder="UF" maxLength={2}
+                          value={form.estado} onChange={(e) => setForm((f) => ({ ...f, estado: e.target.value.toUpperCase() }))} />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Localização complementar */}
               <div className="col-span-2 space-y-1.5">
-                <Label>Localização</Label>
-                <Input placeholder="Cidade, estado, endereço..."
+                <Label>Localização / Referência</Label>
+                <Input placeholder="Ponto de referência, condomínio, etc."
                   value={form.localizacao} onChange={(e) => setForm((f) => ({ ...f, localizacao: e.target.value }))} />
               </div>
 

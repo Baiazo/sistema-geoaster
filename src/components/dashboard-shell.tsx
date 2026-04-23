@@ -48,7 +48,7 @@ export function DashboardShell({ usuario, permissoes, setorAtivo, setores, child
           </button>
           <div className="flex-1 flex justify-center">
             <Image
-              src="/logo-geoaster.png"
+              src="/logo-geoaster-branco.png"
               alt="GeoAster"
               width={110}
               height={24}

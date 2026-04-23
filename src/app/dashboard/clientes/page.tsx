@@ -21,7 +21,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/empty-state";
-import { Plus, Search, Pencil, Trash2, Eye, Loader2, UserRound, Upload, Download, AlertCircle, CheckCircle2, Lock } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Eye, Loader2, UserRound, Upload, Download, AlertCircle, CheckCircle2, Lock, MapPin, LayoutGrid, List } from "lucide-react";
 import { usePermissoes } from "@/contexts/permissoes-context";
 import { maskCpfCnpj, maskTelefone } from "@/lib/masks";
 import { SETOR_CONFIG, TODOS_SETORES } from "@/lib/setores";
@@ -118,6 +118,9 @@ export default function ClientesPage() {
   const permissoes = usePermissoes();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [busca, setBusca] = useState("");
+  const [filtroSetor, setFiltroSetor] = useState<Setor | "TODOS">("TODOS");
+  const [filtroCidade, setFiltroCidade] = useState("");
+  const [visualizacao, setVisualizacao] = useState<"cards" | "lista">("cards");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -135,11 +138,24 @@ export default function ClientesPage() {
     try {
       const res = await fetch(`/api/clientes?busca=${encodeURIComponent(busca)}`);
       const data = await res.json();
-      setClientes(data);
+      setClientes(Array.isArray(data) ? data : []);
     } finally {
       setLoading(false);
     }
   }, [busca]);
+
+  const cidadesUnicas = Array.from(new Set(clientes.map((c) => c.cidade).filter(Boolean))).sort();
+
+  const clientesFiltrados = clientes.filter((c) => {
+    const matchBusca = busca
+      ? c.nome.toLowerCase().includes(busca.toLowerCase()) ||
+        c.cpfCnpj.includes(busca) ||
+        (c.email?.toLowerCase() ?? "").includes(busca.toLowerCase())
+      : true;
+    const matchSetor = filtroSetor === "TODOS" ? true : (c.setores ?? []).includes(filtroSetor);
+    const matchCidade = filtroCidade ? c.cidade === filtroCidade : true;
+    return matchBusca && matchSetor && matchCidade;
+  });
 
   useEffect(() => {
     const timer = setTimeout(fetchClientes, 300);
@@ -288,29 +304,93 @@ export default function ClientesPage() {
         )}
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" aria-hidden="true" />
-        <Input
-          placeholder="Buscar por nome, CPF/CNPJ ou email..."
-          className="pl-9"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          aria-label="Buscar clientes"
-        />
+      {/* Busca + Filtros */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" aria-hidden="true" />
+            <Input
+              placeholder="Buscar por nome, CPF/CNPJ ou email..."
+              className="pl-9"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              aria-label="Buscar clientes"
+            />
+          </div>
+          {cidadesUnicas.length > 0 && (
+            <select
+              value={filtroCidade}
+              onChange={(e) => setFiltroCidade(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Todas as cidades</option>
+              {cidadesUnicas.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {/* Tabs de filtro por setor + toggle visualização */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
+            {(["TODOS", ...TODOS_SETORES] as const).map((s) => {
+              const ativo = filtroSetor === s;
+              const cfg = s === "TODOS" ? null : SETOR_CONFIG[s];
+              return (
+                <button
+                  key={s}
+                  onClick={() => setFiltroSetor(s)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-sm font-medium transition-colors border",
+                    ativo
+                      ? s === "TODOS"
+                        ? "bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-gray-900 dark:border-white"
+                        : `${cfg!.activeBg} ${cfg!.activeText} border-transparent`
+                      : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/20"
+                  )}
+                >
+                  {s === "TODOS" ? "Todos" : cfg!.labelCurto}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex rounded-lg border overflow-hidden">
+            <button
+              onClick={() => setVisualizacao("cards")}
+              className={cn(
+                "px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors",
+                visualizacao === "cards" ? "bg-sky-500 text-white" : "bg-card text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" /> Cards
+            </button>
+            <button
+              onClick={() => setVisualizacao("lista")}
+              className={cn(
+                "px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors",
+                visualizacao === "lista" ? "bg-sky-500 text-white" : "bg-card text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <List className="h-4 w-4" /> Lista
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-card rounded-lg border shadow-md">
+      {/* Grid de cards */}
+      <div className="bg-card rounded-lg border shadow-md p-5">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <Loader2 className="h-6 w-6 animate-spin text-gray-400" aria-label="Carregando" />
           </div>
-        ) : clientes.length === 0 ? (
+        ) : clientesFiltrados.length === 0 ? (
           <EmptyState
             icon={UserRound}
-            title={busca ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
-            description={busca ? "Tente outro termo de busca" : "Cadastre seu primeiro cliente para começar"}
+            title={busca || filtroSetor !== "TODOS" || filtroCidade ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
+            description={busca || filtroSetor !== "TODOS" || filtroCidade ? "Tente ajustar os filtros" : "Cadastre seu primeiro cliente para começar"}
             action={
-              !busca && permissoes.cadastrarClientes ? (
+              !busca && filtroSetor === "TODOS" && !filtroCidade && permissoes.cadastrarClientes ? (
                 <Button onClick={abrirCadastro} className="bg-sky-500 hover:bg-sky-600">
                   <Plus className="mr-2 h-4 w-4" /> Novo Cliente
                 </Button>
@@ -318,78 +398,180 @@ export default function ClientesPage() {
             }
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>CPF/CNPJ</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Setores</TableHead>
-                <TableHead>Propriedades</TableHead>
-                <TableHead>Processos</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clientes.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.nome}</TableCell>
-                  <TableCell>{c.cpfCnpj}</TableCell>
-                  <TableCell>{c.telefone || "-"}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {(!c.setores || c.setores.length === 0) ? (
-                        <span className="text-xs text-muted-foreground">Todos</span>
-                      ) : c.setores.map((s) => {
-                        const cfg = SETOR_CONFIG[s];
-                        return (
-                          <span key={s} className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.badgeBg} ${cfg.badgeText}`}>
-                            {cfg.labelCurto}
+          <>
+            <p className="text-sm text-muted-foreground mb-4">
+              {clientesFiltrados.length} cliente{clientesFiltrados.length !== 1 ? "s" : ""} encontrado{clientesFiltrados.length !== 1 ? "s" : ""}
+            </p>
+            {visualizacao === "cards" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {clientesFiltrados.map((c) => (
+                  <div
+                    key={c.id}
+                    className="rounded-xl border bg-background p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3"
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-foreground truncate">{c.nome}</h3>
+                        <p className="text-sm text-muted-foreground">{c.cpfCnpj}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1 justify-end shrink-0 max-w-[120px]">
+                        {(!c.setores || c.setores.length === 0) ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 font-medium">
+                            Todos
                           </span>
-                        );
-                      })}
+                        ) : c.setores.map((s) => {
+                          const cfg = SETOR_CONFIG[s];
+                          return (
+                            <span key={s} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cfg.badgeBg} ${cfg.badgeText}`}>
+                              {cfg.labelCurto}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{c._count?.propriedades ?? 0}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{c._count?.processos ?? 0}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
+
+                    {/* Info */}
+                    <div className="space-y-1">
+                      {c.telefone && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                          {c.telefone}
+                        </p>
+                      )}
+                      {c.email && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          {c.email}
+                        </p>
+                      )}
+                      {c.cidade && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                          <MapPin className="h-3 w-3" />
+                          {c.cidade}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Contadores */}
+                    <div className="flex gap-3 pt-2 border-t">
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Badge variant="secondary" className="text-xs">{c._count?.propriedades ?? 0}</Badge>
+                        <span className="text-muted-foreground text-xs">Propriedades</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Badge variant="secondary" className="text-xs">{c._count?.processos ?? 0}</Badge>
+                        <span className="text-muted-foreground text-xs">Processos</span>
+                      </div>
+                    </div>
+
+                    {/* Ações */}
+                    <div className="flex items-center justify-end gap-1 pt-1">
                       <Link
                         href={`/dashboard/clientes/${c.id}`}
-                        className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-                        aria-label={`Ver detalhes de ${c.nome}`}
+                        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-8 text-xs gap-1")}
                       >
-                        <Eye className="h-4 w-4" aria-hidden="true" />
+                        <Eye className="h-3.5 w-3.5" /> Ver
                       </Link>
                       {permissoes.cadastrarClientes && (
                         <>
                           <Button
-                            variant="ghost" size="icon"
+                            variant="ghost" size="sm"
+                            className="h-8 text-xs gap-1"
                             onClick={() => abrirEdicao(c)}
-                            aria-label={`Editar ${c.nome}`}
                           >
-                            <Pencil className="h-4 w-4" aria-hidden="true" />
+                            <Pencil className="h-3.5 w-3.5" /> Editar
                           </Button>
                           <Button
-                            variant="ghost" size="icon"
-                            className="text-red-500 hover:text-red-700"
+                            variant="ghost" size="sm"
+                            className="h-8 text-xs gap-1 text-red-500 hover:text-red-700 hover:bg-red-50"
                             onClick={() => setDeleteId(c.id)}
-                            aria-label={`Excluir ${c.nome}`}
                           >
-                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </>
                       )}
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>CPF/CNPJ</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Setores</TableHead>
+                    <TableHead>Cidade</TableHead>
+                    <TableHead>Prop.</TableHead>
+                    <TableHead>Proc.</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clientesFiltrados.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">{c.nome}</TableCell>
+                      <TableCell>{c.cpfCnpj}</TableCell>
+                      <TableCell>{c.telefone || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {(!c.setores || c.setores.length === 0) ? (
+                            <span className="text-xs text-muted-foreground">Todos</span>
+                          ) : c.setores.map((s) => {
+                            const cfg = SETOR_CONFIG[s];
+                            return (
+                              <span key={s} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cfg.badgeBg} ${cfg.badgeText}`}>
+                                {cfg.labelCurto}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </TableCell>
+                      <TableCell>{c.cidade || "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-xs">{c._count?.propriedades ?? 0}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-xs">{c._count?.processos ?? 0}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/dashboard/clientes/${c.id}`}
+                            className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+                            aria-label={`Ver detalhes de ${c.nome}`}
+                          >
+                            <Eye className="h-4 w-4" aria-hidden="true" />
+                          </Link>
+                          {permissoes.cadastrarClientes && (
+                            <>
+                              <Button
+                                variant="ghost" size="icon"
+                                onClick={() => abrirEdicao(c)}
+                                aria-label={`Editar ${c.nome}`}
+                              >
+                                <Pencil className="h-4 w-4" aria-hidden="true" />
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon"
+                                className="text-red-500 hover:text-red-700"
+                                onClick={() => setDeleteId(c.id)}
+                                aria-label={`Excluir ${c.nome}`}
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </>
         )}
       </div>
 

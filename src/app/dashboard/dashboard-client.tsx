@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { MensagemDoDiaCard, EditarMensagemDoDiaDialog } from "@/components/mensagem-do-dia";
 import Link from "next/link";
-import { Users, MapPin, FileText, FolderOpen, BarChart2, Clock, Loader2, FileDown, Sheet, Sparkles, AlertTriangle } from "lucide-react";
+import { Users, MapPin, FileText, FolderOpen, BarChart2, Clock, Loader2, FileDown, Sheet, Sparkles, AlertTriangle, Building2, Home, KeyRound, Eye } from "lucide-react";
 import { usePermissoes } from "@/contexts/permissoes-context";
 import {
   BarChart,
@@ -42,7 +42,8 @@ interface MensagemDoDia {
   updatedAt: string;
 }
 
-interface DashboardData {
+interface DashboardDataGeo {
+  setor: "GEO";
   totalClientes: number;
   totalPropriedades: number;
   totalProcessos: number;
@@ -64,6 +65,27 @@ interface DashboardData {
     cliente: { nome: string };
   }[];
 }
+
+interface DashboardDataImoveis {
+  setor: "IMOVEIS";
+  totalImoveis: number;
+  totalDisponiveis: number;
+  totalVendidos: number;
+  totalExclusivos: number;
+  imoveisPorStatus: { status: string; _count: number }[];
+  imoveisRecentes: {
+    id: string;
+    tipo: string;
+    status: string;
+    localizacao: string | null;
+    cliente: { nome: string };
+    corretor: { nome: string } | null;
+  }[];
+  totalInteressados: number;
+  totalVisitas: number;
+}
+
+type DashboardData = DashboardDataGeo | DashboardDataImoveis;
 
 function diasAteVencimento(validade: string | null): number | null {
   if (!validade) return null;
@@ -89,7 +111,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { valu
   );
 }
 
-export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string; isAdmin: boolean }) {
+export function DashboardClient({ nomeUsuario, isAdmin, setorAtivo }: { nomeUsuario: string; isAdmin: boolean; setorAtivo: string | null }) {
   const { theme } = useTheme();
   const permissoes = usePermissoes();
   const isDark = theme === "dark";
@@ -144,10 +166,12 @@ export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string;
     return () => { cancelado = true; };
   }, []);
 
-  const chartData = (data?.processosPorStatus ?? []).map((p) => ({
-    name: STATUS_MAP[p.status] ?? p.status,
-    total: p._count,
-  }));
+  const chartData = data && "processosPorStatus" in data
+    ? (data.processosPorStatus ?? []).map((p) => ({
+        name: STATUS_MAP[p.status] ?? p.status,
+        total: p._count,
+      }))
+    : [];
 
   async function handleExportPDF() {
     if (!contentRef.current || !data) return;
@@ -195,42 +219,83 @@ export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string;
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
 
-      XLSX.utils.book_append_sheet(
-        wb,
-        XLSX.utils.json_to_sheet([
-          { Indicador: "Clientes", Valor: data.totalClientes },
-          { Indicador: "Propriedades", Valor: data.totalPropriedades },
-          { Indicador: "Processos", Valor: data.totalProcessos },
-          { Indicador: "Documentos", Valor: data.totalDocumentos },
-        ]),
-        "Resumo"
-      );
+      if (data.setor === "IMOVEIS") {
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.json_to_sheet([
+            { Indicador: "Imóveis", Valor: data.totalImoveis },
+            { Indicador: "Disponíveis", Valor: data.totalDisponiveis },
+            { Indicador: "Vendidos", Valor: data.totalVendidos },
+            { Indicador: "Exclusivos", Valor: data.totalExclusivos },
+            { Indicador: "Interessados", Valor: data.totalInteressados },
+            { Indicador: "Visitas", Valor: data.totalVisitas },
+          ]),
+          "Resumo"
+        );
 
-      XLSX.utils.book_append_sheet(
-        wb,
-        XLSX.utils.json_to_sheet(
-          (data.processosPorStatus ?? []).map((p) => ({
-            Status: STATUS_MAP[p.status] ?? p.status,
-            Total: p._count,
-          }))
-        ),
-        "Por Status"
-      );
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.json_to_sheet(
+            (data.imoveisPorStatus ?? []).map((i) => ({
+              Status: i.status === "DISPONIVEL" ? "Disponível" : "Vendido",
+              Total: i._count,
+            }))
+          ),
+          "Por Status"
+        );
 
-      XLSX.utils.book_append_sheet(
-        wb,
-        XLSX.utils.json_to_sheet(
-          (data.processosRecentes ?? []).map((p) => ({
-            Protocolo: p.protocolo,
-            Cliente: p.cliente.nome,
-            "Tipo de Serviço": p.tipoServico,
-            Status: STATUS_MAP[p.status] ?? p.status,
-          }))
-        ),
-        "Processos Recentes"
-      );
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.json_to_sheet(
+            (data.imoveisRecentes ?? []).map((i) => ({
+              Tipo: i.tipo,
+              Cliente: i.cliente.nome,
+              Corretor: i.corretor?.nome ?? "-",
+              Status: i.status === "DISPONIVEL" ? "Disponível" : "Vendido",
+            }))
+          ),
+          "Imóveis Recentes"
+        );
 
-      XLSX.writeFile(wb, "dashboard-geoaster.xlsx");
+        XLSX.writeFile(wb, "dashboard-baster-imoveis.xlsx");
+      } else {
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.json_to_sheet([
+            { Indicador: "Clientes", Valor: (data as DashboardDataGeo).totalClientes },
+            { Indicador: "Propriedades", Valor: (data as DashboardDataGeo).totalPropriedades },
+            { Indicador: "Processos", Valor: (data as DashboardDataGeo).totalProcessos },
+            { Indicador: "Documentos", Valor: (data as DashboardDataGeo).totalDocumentos },
+          ]),
+          "Resumo"
+        );
+
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.json_to_sheet(
+            ((data as DashboardDataGeo).processosPorStatus ?? []).map((p) => ({
+              Status: STATUS_MAP[p.status] ?? p.status,
+              Total: p._count,
+            }))
+          ),
+          "Por Status"
+        );
+
+        XLSX.utils.book_append_sheet(
+          wb,
+          XLSX.utils.json_to_sheet(
+            ((data as DashboardDataGeo).processosRecentes ?? []).map((p) => ({
+              Protocolo: p.protocolo,
+              Cliente: p.cliente.nome,
+              "Tipo de Serviço": p.tipoServico,
+              Status: STATUS_MAP[p.status] ?? p.status,
+            }))
+          ),
+          "Processos Recentes"
+        );
+
+        XLSX.writeFile(wb, "dashboard-geoaster.xlsx");
+      }
     } finally {
       setExportingXLS(false);
     }
@@ -241,7 +306,9 @@ export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string;
       <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Olá, {nomeUsuario}</h1>
-          <p className="text-muted-foreground mt-1">Visão geral do sistema</p>
+          <p className="text-muted-foreground mt-1">
+            {setorAtivo === "IMOVEIS" ? "Visão geral da carteira de imóveis" : "Visão geral do sistema"}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0 justify-end">
           {isAdmin && (
@@ -308,19 +375,14 @@ export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string;
       </div>
 
       {/* Cards de indicadores */}
-      {[
-        { label: "Clientes", value: data?.totalClientes, icon: Users, visivel: permissoes.verClientes },
-        { label: "Propriedades", value: data?.totalPropriedades, icon: MapPin, visivel: permissoes.verPropriedades },
-        { label: "Processos", value: data?.totalProcessos, icon: FileText, visivel: permissoes.verProcessos },
-        { label: "Documentos", value: data?.totalDocumentos, icon: FolderOpen, visivel: permissoes.verDocumentos },
-      ].some((c) => c.visivel) && (
+      {setorAtivo === "IMOVEIS" && data && data.setor === "IMOVEIS" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Clientes", value: data?.totalClientes, icon: Users, visivel: permissoes.verClientes },
-            { label: "Propriedades", value: data?.totalPropriedades, icon: MapPin, visivel: permissoes.verPropriedades },
-            { label: "Processos", value: data?.totalProcessos, icon: FileText, visivel: permissoes.verProcessos },
-            { label: "Documentos", value: data?.totalDocumentos, icon: FolderOpen, visivel: permissoes.verDocumentos },
-          ].filter((c) => c.visivel).map(({ label, value, icon: Icon }) => (
+            { label: "Imóveis", value: data.totalImoveis, icon: Building2 },
+            { label: "Disponíveis", value: data.totalDisponiveis, icon: Home },
+            { label: "Vendidos", value: data.totalVendidos, icon: KeyRound },
+            { label: "Exclusivos", value: data.totalExclusivos, icon: Sparkles },
+          ].map(({ label, value, icon: Icon }) => (
             <Card key={label} className="shadow-sm hover:shadow-md transition-shadow duration-200">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
@@ -336,82 +398,183 @@ export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string;
             </Card>
           ))}
         </div>
+      ) : (
+        [
+          { label: "Clientes", value: (data as DashboardDataGeo)?.totalClientes, icon: Users, visivel: permissoes.verClientes },
+          { label: "Propriedades", value: (data as DashboardDataGeo)?.totalPropriedades, icon: MapPin, visivel: permissoes.verPropriedades },
+          { label: "Processos", value: (data as DashboardDataGeo)?.totalProcessos, icon: FileText, visivel: permissoes.verProcessos },
+          { label: "Documentos", value: (data as DashboardDataGeo)?.totalDocumentos, icon: FolderOpen, visivel: permissoes.verDocumentos },
+        ].some((c) => c.visivel) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[
+              { label: "Clientes", value: (data as DashboardDataGeo)?.totalClientes, icon: Users, visivel: permissoes.verClientes },
+              { label: "Propriedades", value: (data as DashboardDataGeo)?.totalPropriedades, icon: MapPin, visivel: permissoes.verPropriedades },
+              { label: "Processos", value: (data as DashboardDataGeo)?.totalProcessos, icon: FileText, visivel: permissoes.verProcessos },
+              { label: "Documentos", value: (data as DashboardDataGeo)?.totalDocumentos, icon: FolderOpen, visivel: permissoes.verDocumentos },
+            ].filter((c) => c.visivel).map(({ label, value, icon: Icon }) => (
+              <Card key={label} className="shadow-sm hover:shadow-md transition-shadow duration-200">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <div className="text-2xl font-bold">{value ?? 0}</div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
       )}
 
-      {permissoes.verProcessos && <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de barras */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <BarChart2 className="h-4 w-4" /> Processos por status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-2">
-            {loading ? (
-              <div className="flex items-center justify-center h-52">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : chartData.length === 0 ? (
-              <div className="flex items-center justify-center h-52 text-sm text-muted-foreground">
-                Nenhum processo no período
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={210}>
-                <BarChart data={chartData} barCategoryGap="35%" margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 12, fill: tickColor }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fontSize: 12, fill: tickColor }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: isDark ? "#1e293b" : "#f1f5f9", radius: 6 }} />
-                  <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={56} fill={barColor}>
-                    <LabelList dataKey="total" position="insideTop" style={{ fill: "#fff", fontSize: 13, fontWeight: 600 }} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Processos */}
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Clock className="h-4 w-4" /> Processos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loading ? (
-              <div className="flex items-center justify-center h-52">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (data?.processosRecentes ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum processo no período</p>
-            ) : (
-              (data?.processosRecentes ?? []).map((p) => (
-                <div key={p.id} className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium">{p.protocolo}</p>
-                    <p className="text-xs text-muted-foreground">{p.cliente.nome} · {p.tipoServico}</p>
-                  </div>
-                  <StatusBadge status={p.status} />
+      {setorAtivo === "IMOVEIS" && data && data.setor === "IMOVEIS" ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Gráfico de imóveis por status */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <BarChart2 className="h-4 w-4" /> Imóveis por status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              {loading ? (
+                <div className="flex items-center justify-center h-52">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>}
+              ) : (data.imoveisPorStatus ?? []).length === 0 ? (
+                <div className="flex items-center justify-center h-52 text-sm text-muted-foreground">
+                  Nenhum imóvel no período
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart
+                    data={(data.imoveisPorStatus ?? []).map((i) => ({
+                      name: i.status === "DISPONIVEL" ? "Disponíveis" : "Vendidos",
+                      total: i._count,
+                    }))}
+                    barCategoryGap="35%"
+                    margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: tickColor }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: tickColor }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: isDark ? "#1e293b" : "#f1f5f9", radius: 6 }} />
+                    <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={56} fill={barColor}>
+                      <LabelList dataKey="total" position="insideTop" style={{ fill: "#fff", fontSize: 13, fontWeight: 600 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Orçamentos próximos do vencimento */}
-      {permissoes.verOrcamentos && (data?.orcamentosVencendo ?? []).length > 0 && (
+          {/* Imóveis recentes */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Imóveis recentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loading ? (
+                <div className="flex items-center justify-center h-52">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (data.imoveisRecentes ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum imóvel no período</p>
+              ) : (
+                (data.imoveisRecentes ?? []).map((i) => (
+                  <Link key={i.id} href={`/dashboard/imoveis/${i.id}`} className="flex items-start justify-between gap-2 rounded-md px-2 py-2 -mx-2 hover:bg-muted/50 transition-colors">
+                    <div>
+                      <p className="text-sm font-medium">{i.tipo}</p>
+                      <p className="text-xs text-muted-foreground">{i.cliente.nome}{i.corretor ? ` · ${i.corretor.nome}` : ""}</p>
+                    </div>
+                    <StatusBadge status={i.status} />
+                  </Link>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        permissoes.verProcessos && <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Gráfico de barras */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <BarChart2 className="h-4 w-4" /> Processos por status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              {loading ? (
+                <div className="flex items-center justify-center h-52">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : chartData.length === 0 ? (
+                <div className="flex items-center justify-center h-52 text-sm text-muted-foreground">
+                  Nenhum processo no período
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={210}>
+                  <BarChart data={chartData} barCategoryGap="35%" margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 12, fill: tickColor }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 12, fill: tickColor }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: isDark ? "#1e293b" : "#f1f5f9", radius: 6 }} />
+                    <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={56} fill={barColor}>
+                      <LabelList dataKey="total" position="insideTop" style={{ fill: "#fff", fontSize: 13, fontWeight: 600 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Processos */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Processos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loading ? (
+                <div className="flex items-center justify-center h-52">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : ((data as DashboardDataGeo)?.processosRecentes ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum processo no período</p>
+              ) : (
+                ((data as DashboardDataGeo)?.processosRecentes ?? []).map((p) => (
+                  <div key={p.id} className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium">{p.protocolo}</p>
+                      <p className="text-xs text-muted-foreground">{p.cliente.nome} · {p.tipoServico}</p>
+                    </div>
+                    <StatusBadge status={p.status} />
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Orçamentos próximos do vencimento — só GEO/AMBIENTAL */}
+      {setorAtivo !== "IMOVEIS" && permissoes.verOrcamentos && (data as DashboardDataGeo)?.orcamentosVencendo && ((data as DashboardDataGeo).orcamentosVencendo ?? []).length > 0 && (
         <Card className="shadow-sm mt-6 border-amber-200 dark:border-amber-900/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -420,7 +583,7 @@ export function DashboardClient({ nomeUsuario, isAdmin }: { nomeUsuario: string;
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(data?.orcamentosVencendo ?? []).map((o) => {
+            {((data as DashboardDataGeo)?.orcamentosVencendo ?? []).map((o) => {
               const dias = diasAteVencimento(o.validadeAte);
               const vencido = dias !== null && dias < 0;
               const hoje = dias === 0;

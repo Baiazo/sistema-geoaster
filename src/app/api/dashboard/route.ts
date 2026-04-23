@@ -42,9 +42,54 @@ export async function GET(request: NextRequest) {
     const from = getDateFrom(periodo);
     const dateFilter = from ? { createdAt: { gte: from } } : {};
 
+    // Dashboard por setor
+    const setor = session.setorAtivo;
+
+    if (setor === "IMOVEIS" && perm.verImoveis) {
+      const [
+        totalImoveis,
+        totalDisponiveis,
+        totalVendidos,
+        totalExclusivos,
+        imoveisPorStatus,
+        imoveisRecentes,
+        totalInteressados,
+        totalVisitas,
+      ] = await Promise.all([
+        prisma.imovel.count({ where: dateFilter }),
+        prisma.imovel.count({ where: { status: "DISPONIVEL", ...dateFilter } }),
+        prisma.imovel.count({ where: { status: "VENDIDO", ...dateFilter } }),
+        prisma.imovel.count({ where: { exclusividade: true, ...dateFilter } }),
+        prisma.imovel.groupBy({ by: ["status"], _count: true, where: dateFilter }),
+        prisma.imovel.findMany({
+          take: 5,
+          orderBy: { createdAt: "desc" },
+          where: dateFilter,
+          include: { cliente: { select: { nome: true } }, corretor: { select: { nome: true } } },
+        }),
+        prisma.imovelInteressado.count(),
+        prisma.visitaImovel.count(),
+      ]);
+
+      return Response.json({
+        setor: "IMOVEIS",
+        totalImoveis,
+        totalDisponiveis,
+        totalVendidos,
+        totalExclusivos,
+        imoveisPorStatus,
+        imoveisRecentes,
+        totalInteressados,
+        totalVisitas,
+      });
+    }
+
+    // Dashboard padrão (GEO / AMBIENTAL / sem setor)
     const agora = new Date();
     const limiteVencimento = new Date(agora);
     limiteVencimento.setDate(limiteVencimento.getDate() + 7);
+
+    const setorFilter = setor && setor !== "IMOVEIS" ? { setores: { has: setor } } : {};
 
     const [
       totalClientes,
@@ -56,10 +101,10 @@ export async function GET(request: NextRequest) {
       orcamentosVencendo,
     ] = await Promise.all([
       perm.verClientes
-        ? prisma.cliente.count({ where: { ativo: true, ...dateFilter } })
+        ? prisma.cliente.count({ where: { ativo: true, ...dateFilter, ...setorFilter } })
         : Promise.resolve(null),
       perm.verPropriedades
-        ? prisma.propriedade.count({ where: dateFilter })
+        ? prisma.propriedade.count({ where: { ...dateFilter, ...setorFilter } })
         : Promise.resolve(null),
       perm.verProcessos
         ? prisma.processo.count({ where: dateFilter })
@@ -92,6 +137,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     return Response.json({
+      setor: setor ?? "GEO",
       totalClientes,
       totalPropriedades,
       totalProcessos,

@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       clienteId, corretorId, categoria, tipo, valor, exclusividade,
-      dataCaptacao, localizacao, areaTotal, areaUtil, areaReservaLegal,
+      dataCaptacao, localizacao, cep, rua, numero, bairro, cidade, estado,
+      areaM2, areaTotal, areaUtil, areaReservaLegal,
       areaApp, areaAberta, areaMata, observacoes,
     } = body;
 
@@ -73,6 +74,13 @@ export async function POST(request: NextRequest) {
         exclusividade: Boolean(exclusividade),
         dataCaptacao: dataCaptacao ? new Date(dataCaptacao) : null,
         localizacao,
+        cep: cep || null,
+        rua: rua || null,
+        numero: numero || null,
+        bairro: bairro || null,
+        cidade: cidade || null,
+        estado: estado || null,
+        areaM2: areaM2 ? Number(areaM2) : null,
         areaTotal: areaTotal ? Number(areaTotal) : null,
         areaUtil: areaUtil ? Number(areaUtil) : null,
         areaReservaLegal: areaReservaLegal ? Number(areaReservaLegal) : null,

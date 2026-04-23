@@ -81,7 +81,7 @@ export default function ProtocoloPage() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-5">
             <Image
-              src="/logo-geoaster.png"
+              src="/logo-geoaster-branco.png"
               alt="GeoAster"
               width={220}
               height={47}
@@ -224,7 +224,7 @@ export default function ProtocoloPage() {
 
         <div className="flex justify-center mt-8">
           <Image
-            src="/logo-geoaster.png"
+            src="/logo-geoaster-branco.png"
             alt="GeoAster"
             width={100}
             height={21}

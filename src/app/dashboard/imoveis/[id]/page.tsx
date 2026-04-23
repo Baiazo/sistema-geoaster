@@ -39,6 +39,13 @@ interface Imovel {
   valor?: number;
   exclusividade: boolean;
   localizacao?: string;
+  cep?: string;
+  rua?: string;
+  numero?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  areaM2?: number;
   dataCaptacao?: string;
   areaTotal?: number;
   areaUtil?: number;
@@ -284,6 +291,17 @@ export default function ImovelDetailPage({ params }: { params: Promise<{ id: str
               <Campo label="Data de captação" valor={imovel.dataCaptacao ? new Date(imovel.dataCaptacao).toLocaleDateString("pt-BR") : undefined} />
               <Campo label="Proprietário" valor={imovel.cliente.nome} />
               <Campo label="Corretor / Captador" valor={imovel.corretor?.nome} />
+              {imovel.categoria === "URBANO" && (
+                <>
+                  <Campo label="CEP" valor={imovel.cep} />
+                  <Campo label="Área (m²)" valor={imovel.areaM2 ? `${imovel.areaM2.toLocaleString("pt-BR")} m²` : undefined} />
+                  <Campo label="Rua" valor={imovel.rua} />
+                  <Campo label="Número" valor={imovel.numero} />
+                  <Campo label="Bairro" valor={imovel.bairro} />
+                  <Campo label="Cidade" valor={imovel.cidade} />
+                  <Campo label="Estado" valor={imovel.estado} />
+                </>
+              )}
             </div>
             {imovel.observacoes && (
               <div className="mt-4 pt-4 border-t">

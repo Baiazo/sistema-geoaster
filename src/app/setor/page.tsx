@@ -62,13 +62,22 @@ export default function SetorPage() {
                   {loading ? (
                     <Loader2 className={cn("h-10 w-10 animate-spin", cfg.iconColor)} />
                   ) : (
-                    <Image
-                      src={cfg.logo}
-                      alt={cfg.label}
-                      width={160}
-                      height={64}
-                      className="object-contain max-h-16"
-                    />
+                    <>
+                      <Image
+                        src={cfg.logo}
+                        alt={cfg.label}
+                        width={160}
+                        height={64}
+                        className="object-contain max-h-16 dark:hidden"
+                      />
+                      <Image
+                        src={cfg.logoBranco}
+                        alt={cfg.label}
+                        width={160}
+                        height={64}
+                        className="object-contain max-h-16 hidden dark:block"
+                      />
+                    </>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground text-center">{cfg.descricao}</p>

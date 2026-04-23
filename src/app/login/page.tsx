@@ -45,7 +45,7 @@ export default function LoginPage() {
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-6 mt-2">
             <Image
-              src="/logo-geoaster.png"
+              src="/logo-geoaster-branco.png"
               alt="GeoAster"
               width={200}
               height={43}
