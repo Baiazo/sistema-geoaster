@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -120,7 +120,7 @@ export default function EquipeDetalhePage() {
         <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </button>
-        <p className="text-muted-foreground">{erro || "Equipe não encontrada."}</p>
+        <p className="text-muted-foreground">{erro || "Equipe n├úo encontrada."}</p>
       </div>
     );
   }
@@ -156,7 +156,7 @@ export default function EquipeDetalhePage() {
       {/* Header */}
       <div>
         <Link
-          href="/dashboard/equipes"
+          href="/dashboard/gestao/equipes"
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 w-fit"
         >
           <ArrowLeft className="h-4 w-4" /> Voltar para Equipes
@@ -180,9 +180,9 @@ export default function EquipeDetalhePage() {
             {equipe.responsavel && (
               <p className="text-muted-foreground mt-1 flex items-center gap-1.5">
                 <UserCheck className="h-4 w-4 text-sky-500" aria-hidden="true" />
-                Responsável: <span className="font-medium text-foreground">{equipe.responsavel.nome}</span>
+                Respons├ível: <span className="font-medium text-foreground">{equipe.responsavel.nome}</span>
                 {equipe.responsavel.cargo && (
-                  <span className="text-xs">· {equipe.responsavel.cargo}</span>
+                  <span className="text-xs">┬À {equipe.responsavel.cargo}</span>
                 )}
               </p>
             )}
@@ -200,17 +200,17 @@ export default function EquipeDetalhePage() {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard icon={Users} label="Membros" value={todosColaboradores.length} color="bg-sky-500" />
         <StatCard icon={Clock} label="Processos ativos" value={ativos} color="bg-amber-500" />
-        <StatCard icon={CheckCircle2} label="Concluídos" value={concluidos} color="bg-green-500" />
+        <StatCard icon={CheckCircle2} label="Conclu├¡dos" value={concluidos} color="bg-green-500" />
         <StatCard
           icon={FileText}
           label="Faturamento total"
-          value={faturamento > 0 ? formatCurrency(faturamento) : "—"}
+          value={faturamento > 0 ? formatCurrency(faturamento) : "ÔÇö"}
           color="bg-purple-500"
         />
       </div>
 
       {/* Membros */}
-      <Section title={`Membros · ${todosColaboradores.length}`}>
+      <Section title={`Membros ┬À ${todosColaboradores.length}`}>
         {todosColaboradores.length === 0 ? (
           <p className="text-sm text-muted-foreground px-5 py-6">Nenhum membro cadastrado.</p>
         ) : (
@@ -220,7 +220,7 @@ export default function EquipeDetalhePage() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Cargo</TableHead>
                 <TableHead>E-mail</TableHead>
-                <TableHead>Função</TableHead>
+                <TableHead>Fun├º├úo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -232,7 +232,7 @@ export default function EquipeDetalhePage() {
                     </div>
                     {colaborador.nome}
                   </TableCell>
-                  <TableCell>{colaborador.cargo || <span className="text-muted-foreground">—</span>}</TableCell>
+                  <TableCell>{colaborador.cargo || <span className="text-muted-foreground">ÔÇö</span>}</TableCell>
                   <TableCell>
                     {colaborador.email ? (
                       <a
@@ -243,14 +243,14 @@ export default function EquipeDetalhePage() {
                         {colaborador.email}
                       </a>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-muted-foreground">ÔÇö</span>
                     )}
                   </TableCell>
                   <TableCell>
                     {isResponsavel ? (
                       <span className="flex items-center gap-1 text-xs font-medium text-sky-600 dark:text-sky-400">
                         <UserCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                        Responsável
+                        Respons├ível
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground">Membro</span>
@@ -264,17 +264,17 @@ export default function EquipeDetalhePage() {
       </Section>
 
       {/* Processos */}
-      <Section title={`Processos · ${equipe.processos.length}`}>
+      <Section title={`Processos ┬À ${equipe.processos.length}`}>
         {equipe.processos.length === 0 ? (
           <p className="text-sm text-muted-foreground px-5 py-6">Nenhum processo vinculado a esta equipe.</p>
         ) : (
           <>
-            {/* Distribuição por status */}
+            {/* Distribui├º├úo por status */}
             <div className="flex flex-wrap gap-3 px-5 py-3 border-b">
               {[
                 { label: "Em andamento", count: processosPorStatus["EM_ANDAMENTO"] ?? 0, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
                 { label: "Pendente", count: processosPorStatus["PENDENTE"] ?? 0, color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-                { label: "Concluído", count: processosPorStatus["CONCLUIDO"] ?? 0, color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+                { label: "Conclu├¡do", count: processosPorStatus["CONCLUIDO"] ?? 0, color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
                 { label: "Cancelado", count: cancelados, color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
               ].map(({ label, count, color }) => (
                 <span key={label} className={cn("text-xs px-2.5 py-1 rounded-full font-medium", color)}>
@@ -288,11 +288,11 @@ export default function EquipeDetalhePage() {
                 <TableRow>
                   <TableHead>Protocolo</TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Tipo de Serviço</TableHead>
-                  <TableHead>Município</TableHead>
+                  <TableHead>Tipo de Servi├ºo</TableHead>
+                  <TableHead>Munic├¡pio</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Início</TableHead>
+                  <TableHead>In├¡cio</TableHead>
                   <TableHead className="text-right">Ver</TableHead>
                 </TableRow>
               </TableHeader>
@@ -302,14 +302,14 @@ export default function EquipeDetalhePage() {
                     <TableCell className="font-mono text-sm font-medium">{p.protocolo}</TableCell>
                     <TableCell>{p.cliente.nome}</TableCell>
                     <TableCell>{p.tipoServico}</TableCell>
-                    <TableCell>{p.propriedade?.municipio || <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>{p.propriedade?.municipio || <span className="text-muted-foreground">ÔÇö</span>}</TableCell>
                     <TableCell>
                       {p.valor ? (
                         <span className="text-sm font-medium text-green-600 dark:text-green-400">
                           {formatCurrency(p.valor)}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">ÔÇö</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -333,9 +333,9 @@ export default function EquipeDetalhePage() {
         )}
       </Section>
 
-      {/* Municípios atendidos */}
+      {/* Munic├¡pios atendidos */}
       {municipios.length > 0 && (
-        <Section title="Municípios atendidos">
+        <Section title="Munic├¡pios atendidos">
           <div className="flex flex-wrap gap-2 px-5 py-4">
             {municipios.map((m) => (
               <span
@@ -349,9 +349,9 @@ export default function EquipeDetalhePage() {
         </Section>
       )}
 
-      {/* Distribuição por tipo de serviço */}
+      {/* Distribui├º├úo por tipo de servi├ºo */}
       {equipe.processos.length > 0 && (
-        <Section title="Distribuição por tipo de serviço">
+        <Section title="Distribui├º├úo por tipo de servi├ºo">
           <div className="px-5 py-4 space-y-2">
             {Object.entries(
               equipe.processos.reduce<Record<string, number>>((acc, p) => {
@@ -382,14 +382,14 @@ export default function EquipeDetalhePage() {
 
       {/* Processos com cancelamento */}
       {cancelados > 0 && (
-        <Section title={`Processos cancelados · ${cancelados}`}>
+        <Section title={`Processos cancelados ┬À ${cancelados}`}>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Protocolo</TableHead>
                 <TableHead>Cliente</TableHead>
-                <TableHead>Tipo de Serviço</TableHead>
-                <TableHead>Data início</TableHead>
+                <TableHead>Tipo de Servi├ºo</TableHead>
+                <TableHead>Data in├¡cio</TableHead>
                 <TableHead className="text-right">Ver</TableHead>
               </TableRow>
             </TableHeader>

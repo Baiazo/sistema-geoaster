@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
@@ -79,9 +79,9 @@ export default function ColaboradoresPage() {
 
   function validar(): boolean {
     const novosErros: Record<string, string> = {};
-    if (!form.nome.trim()) novosErros.nome = "Nome é obrigatório";
+    if (!form.nome.trim()) novosErros.nome = "Nome ├® obrigat├│rio";
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      novosErros.email = "E-mail inválido";
+      novosErros.email = "E-mail inv├ílido";
     }
     setErros(novosErros);
     return Object.keys(novosErros).length === 0;
@@ -132,7 +132,7 @@ export default function ColaboradoresPage() {
         <EmptyState
           icon={Lock}
           title="Acesso restrito"
-          description="Você não tem permissão para visualizar colaboradores. Contate o administrador."
+          description="Voc├¬ n├úo tem permiss├úo para visualizar colaboradores. Contate o administrador."
         />
       </div>
     );
@@ -143,7 +143,7 @@ export default function ColaboradoresPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Colaboradores</h1>
-          <p className="text-muted-foreground mt-1">Membros da equipe técnica</p>
+          <p className="text-muted-foreground mt-1">Membros da equipe t├®cnica</p>
         </div>
         {permissoes.cadastrarColaboradores && (
           <Button onClick={abrirNovo} className="bg-sky-500 hover:bg-sky-600">
@@ -172,7 +172,7 @@ export default function ColaboradoresPage() {
           <EmptyState
             icon={Users}
             title={busca ? "Nenhum colaborador encontrado" : "Nenhum colaborador cadastrado"}
-            description={busca ? "Tente outros termos de busca" : "Cadastre o primeiro colaborador para começar"}
+            description={busca ? "Tente outros termos de busca" : "Cadastre o primeiro colaborador para come├ºar"}
             action={
               !busca && permissoes.cadastrarColaboradores ? (
                 <Button onClick={abrirNovo} className="bg-sky-500 hover:bg-sky-600">
@@ -191,7 +191,7 @@ export default function ColaboradoresPage() {
                 <TableHead>CPF</TableHead>
                 <TableHead>Equipes</TableHead>
                 {permissoes.cadastrarColaboradores && (
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="text-right">A├º├Áes</TableHead>
                 )}
               </TableRow>
             </TableHeader>
@@ -257,7 +257,7 @@ export default function ColaboradoresPage() {
               <Input
                 id="col-cargo"
                 value={form.cargo}
-                placeholder="Ex: Técnico em Georreferenciamento"
+                placeholder="Ex: T├®cnico em Georreferenciamento"
                 onChange={(e) => setForm((f) => ({ ...f, cargo: e.target.value }))}
               />
             </div>
@@ -296,8 +296,8 @@ export default function ColaboradoresPage() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>O colaborador será removido do sistema.</AlertDialogDescription>
+            <AlertDialogTitle>Confirmar exclus├úo</AlertDialogTitle>
+            <AlertDialogDescription>O colaborador ser├í removido do sistema.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

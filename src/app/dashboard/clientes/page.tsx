@@ -132,6 +132,7 @@ export default function ClientesPage() {
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ importados: number; ignorados: number } | null>(null);
+  const [importSetores, setImportSetores] = useState<Setor[]>([]);
 
   const fetchClientes = useCallback(async () => {
     setLoading(true);
@@ -249,12 +250,13 @@ export default function ClientesPage() {
       const res = await fetch("/api/clientes/importar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientes: validos }),
+        body: JSON.stringify({ clientes: validos, setores: importSetores }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error); return; }
       setImportResult(data);
       setImportRows([]);
+      setImportSetores([]);
       fetchClientes();
     } finally {
       setImporting(false);
@@ -686,7 +688,7 @@ export default function ClientesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={importDialogOpen} onOpenChange={(open) => { setImportDialogOpen(open); if (!open) { setImportRows([]); setImportResult(null); } }}>
+      <Dialog open={importDialogOpen} onOpenChange={(open) => { setImportDialogOpen(open); if (!open) { setImportRows([]); setImportResult(null); setImportSetores([]); } }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Importar clientes via CSV</DialogTitle>
@@ -698,6 +700,32 @@ export default function ClientesPage() {
               <Button variant="ghost" size="sm" onClick={downloadModelo} className="shrink-0 ml-2">
                 <Download className="mr-1.5 h-3.5 w-3.5" /> Baixar modelo
               </Button>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Setores dos clientes importados</Label>
+              <p className="text-xs text-muted-foreground">Nenhum selecionado = aparece em todos os setores</p>
+              <div className="flex flex-col gap-1.5 pt-1">
+                {TODOS_SETORES.map((setor) => {
+                  const cfg = SETOR_CONFIG[setor];
+                  return (
+                    <label key={setor} className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={importSetores.includes(setor)}
+                        onChange={() => {
+                          const next = importSetores.includes(setor)
+                            ? importSetores.filter((s) => s !== setor)
+                            : [...importSetores, setor];
+                          setImportSetores(next);
+                        }}
+                        className="h-4 w-4 rounded border-border"
+                      />
+                      <span className="text-sm">{cfg.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             {!importResult && (

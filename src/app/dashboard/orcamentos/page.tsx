@@ -48,17 +48,34 @@ interface Cliente { id: string; nome: string }
 interface Propriedade { id: string; nome: string; clienteId: string }
 interface Equipe { id: string; nome: string }
 
-const tiposServico = [
-  "Georreferenciamento",
-  "CAR",
-  "Regularização ambiental",
-  "Licença ambiental",
-  "Emissão de CCIR",
-  "Processo INCRA",
-  "Mapa de uso e ocupação de solo",
-  "Inventário florestal",
-  "Outros",
-];
+const TIPOS_SERVICO_POR_SETOR: Record<string, string[]> = {
+  GEO: [
+    "Georreferenciamento",
+    "CAR",
+    "Regularização ambiental",
+    "Licença ambiental",
+    "Emissão de CCIR",
+    "Processo INCRA",
+    "Mapa de uso e ocupação de solo",
+    "Inventário florestal",
+    "Outros",
+  ],
+  AMBIENTAL: [
+    "Georreferenciamento",
+    "CAR",
+    "Regularização ambiental",
+    "Licença ambiental",
+    "Emissão de CCIR",
+    "Processo INCRA",
+    "Mapa de uso e ocupação de solo",
+    "Inventário florestal",
+    "Outros",
+  ],
+  IMOVEIS: [
+    "Avaliação de imóvel rural",
+    "Avaliação de imóvel urbano",
+  ],
+};
 
 const emptyForm = {
   clienteId: "",
@@ -108,6 +125,11 @@ export default function OrcamentosPage() {
   const [form, setForm] = useState(emptyForm);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [setorAtivo, setSetorAtivo] = useState<string>("");
+
+  const tiposServico = setorAtivo && TIPOS_SERVICO_POR_SETOR[setorAtivo]
+    ? TIPOS_SERVICO_POR_SETOR[setorAtivo]
+    : TIPOS_SERVICO_POR_SETOR["GEO"];
 
   const fetchOrcamentos = useCallback(async () => {
     setLoading(true);
@@ -131,6 +153,14 @@ export default function OrcamentosPage() {
     fetch("/api/equipes")
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setEquipes(data); })
+      .catch(() => {});
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.usuario?.setorAtivo) {
+          setSetorAtivo(data.usuario.setorAtivo);
+        }
+      })
       .catch(() => {});
   }, []);
 

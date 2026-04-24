@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
@@ -124,7 +124,7 @@ export default function EquipesPage() {
 
   function validar(): boolean {
     const novosErros: Record<string, string> = {};
-    if (!nomeEquipe.trim()) novosErros.nome = "Nome é obrigatório";
+    if (!nomeEquipe.trim()) novosErros.nome = "Nome ├® obrigat├│rio";
     setErros(novosErros);
     return Object.keys(novosErros).length === 0;
   }
@@ -174,7 +174,7 @@ export default function EquipesPage() {
         <EmptyState
           icon={Lock}
           title="Acesso restrito"
-          description="Você não tem permissão para visualizar equipes. Contate o administrador."
+          description="Voc├¬ n├úo tem permiss├úo para visualizar equipes. Contate o administrador."
         />
       </div>
     );
@@ -185,7 +185,7 @@ export default function EquipesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Equipes</h1>
-          <p className="text-muted-foreground mt-1">Grupos de trabalho e responsáveis</p>
+          <p className="text-muted-foreground mt-1">Grupos de trabalho e respons├íveis</p>
         </div>
         {permissoes.cadastrarEquipes && (
           <Button onClick={abrirNovo} className="bg-sky-500 hover:bg-sky-600">
@@ -197,7 +197,7 @@ export default function EquipesPage() {
       <div className="relative mb-4">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" aria-hidden="true" />
         <Input
-          placeholder="Buscar por nome ou responsável..."
+          placeholder="Buscar por nome ou respons├ível..."
           className="pl-9"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
@@ -214,7 +214,7 @@ export default function EquipesPage() {
           <EmptyState
             icon={UsersRound}
             title={busca ? "Nenhuma equipe encontrada" : "Nenhuma equipe cadastrada"}
-            description={busca ? "Tente outros termos de busca" : "Crie a primeira equipe para começar"}
+            description={busca ? "Tente outros termos de busca" : "Crie a primeira equipe para come├ºar"}
             action={
               !busca && permissoes.cadastrarEquipes ? (
                 <Button onClick={abrirNovo} className="bg-sky-500 hover:bg-sky-600">
@@ -228,10 +228,10 @@ export default function EquipesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Responsável</TableHead>
+                <TableHead>Respons├ível</TableHead>
                 <TableHead>Membros</TableHead>
                 <TableHead>Processos</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="text-right">A├º├Áes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -251,7 +251,7 @@ export default function EquipesPage() {
                       </div>
                     ) : (
                       <div>
-                        <span className="text-muted-foreground text-sm">Sem responsável</span>
+                        <span className="text-muted-foreground text-sm">Sem respons├ível</span>
                         {equipe.telefone && (
                           <p className="text-xs text-muted-foreground">{equipe.telefone}</p>
                         )}
@@ -286,7 +286,7 @@ export default function EquipesPage() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Link
-                        href={`/dashboard/equipes/${equipe.id}`}
+                        href={`/dashboard/gestao/equipes/${equipe.id}`}
                         className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
                         aria-label={`Ver detalhes de ${equipe.nome}`}
                       >
@@ -350,7 +350,7 @@ export default function EquipesPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="eq-responsavel">Responsável</Label>
+              <Label htmlFor="eq-responsavel">Respons├ível</Label>
               <Select
                 value={responsavelId}
                 onValueChange={(v) => {
@@ -363,16 +363,16 @@ export default function EquipesPage() {
                 <SelectTrigger id="eq-responsavel">
                   {responsavelId ? (
                     <span className="flex flex-1 text-left text-sm truncate" data-slot="select-value">
-                      {colaboradoresParaSelect.find((c) => c.id === responsavelId)?.nome ?? "—"}
+                      {colaboradoresParaSelect.find((c) => c.id === responsavelId)?.nome ?? "ÔÇö"}
                     </span>
                   ) : (
-                    <SelectValue placeholder="Selecione o responsável (opcional)" />
+                    <SelectValue placeholder="Selecione o respons├ível (opcional)" />
                   )}
                 </SelectTrigger>
                 <SelectContent>
                   {colaboradoresParaSelect.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.cargo ? `${c.nome} · ${c.cargo}` : c.nome}
+                      {c.cargo ? `${c.nome} ┬À ${c.cargo}` : c.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -453,8 +453,8 @@ export default function EquipesPage() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>A equipe será removida. Os processos vinculados não serão afetados.</AlertDialogDescription>
+            <AlertDialogTitle>Confirmar exclus├úo</AlertDialogTitle>
+            <AlertDialogDescription>A equipe ser├í removida. Os processos vinculados n├úo ser├úo afetados.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

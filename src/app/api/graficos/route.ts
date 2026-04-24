@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
@@ -10,10 +11,20 @@ function inicioMesOffset(offset: number) {
   return new Date(now.getFullYear(), now.getMonth() - offset, 1);
 }
 
-export async function GET() {
+const SETORES_VALIDOS = ["GEO", "AMBIENTAL", "IMOVEIS"] as const;
+
+export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return Response.json({ error: "Não autenticado" }, { status: 401 });
+
+    const { searchParams } = new URL(request.url);
+    const setorParam = searchParams.get("setor");
+
+    let setorEfetivo = session.setorAtivo;
+    if (setorParam && session.perfilAcesso === "ADMIN" && SETORES_VALIDOS.includes(setorParam as typeof SETORES_VALIDOS[number])) {
+      setorEfetivo = setorParam as typeof SETORES_VALIDOS[number];
+    }
 
     const agora = new Date();
     const inicioMesAtual = new Date(agora.getFullYear(), agora.getMonth(), 1);
@@ -21,7 +32,7 @@ export async function GET() {
     const meses6 = Array.from({ length: 6 }, (_, i) => inicioMesOffset(5 - i));
 
     // Dashboard por setor
-    if (session.setorAtivo === "IMOVEIS") {
+    if (setorEfetivo === "IMOVEIS") {
       const [
         todosImoveis,
         imoveis6m,
@@ -280,7 +291,7 @@ export async function GET() {
       .reduce((acc, p) => acc + (p.propriedade?.area ?? 0), 0);
 
     return Response.json({
-      setor: "GEO",
+      setor: setorEfetivo,
       processosPorStatus,
       processosPorTipo,
       processosAbertosFechadosMes,

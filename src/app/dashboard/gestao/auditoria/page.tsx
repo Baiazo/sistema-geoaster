@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
@@ -42,7 +42,7 @@ const ACAO_LABELS: Record<string, string> = {
 const ACOES = ["CRIAR", "EDITAR", "EXCLUIR", "LOGIN", "LOGOUT"];
 const ENTIDADES = [
   "Cliente", "Propriedade", "Processo", "Documento",
-  "Colaborador", "Equipe", "Usuário",
+  "Colaborador", "Equipe", "Usu├írio",
 ];
 
 function formatData(iso: string) {
@@ -110,7 +110,7 @@ export default function LogsPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Logs de Auditoria</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Registro de todas as ações realizadas no sistema</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Registro de todas as a├º├Áes realizadas no sistema</p>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export default function LogsPage() {
           <div className="relative sm:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder="Buscar por descrição, entidade ou usuário..."
+              placeholder="Buscar por descri├º├úo, entidade ou usu├írio..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
               className="pl-9"
@@ -132,7 +132,7 @@ export default function LogsPage() {
             onChange={(e) => setAcao(e.target.value)}
             className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            <option value="">Todas as ações</option>
+            <option value="">Todas as a├º├Áes</option>
             {ACOES.map((a) => (
               <option key={a} value={a}>{ACAO_LABELS[a]}</option>
             ))}
@@ -161,7 +161,7 @@ export default function LogsPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground whitespace-nowrap">Até:</label>
+            <label className="text-sm text-muted-foreground whitespace-nowrap">At├®:</label>
             <Input
               type="date"
               value={fim}
@@ -210,10 +210,10 @@ export default function LogsPage() {
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Data / Hora</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Usuário</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ação</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Usu├írio</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">A├º├úo</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">Entidade</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Descrição</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Descri├º├úo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -249,7 +249,7 @@ export default function LogsPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground max-w-xs">
-                      {log.descricao || <span className="italic text-xs">—</span>}
+                      {log.descricao || <span className="italic text-xs">ÔÇö</span>}
                     </td>
                   </tr>
                 ))}
@@ -259,11 +259,11 @@ export default function LogsPage() {
         )}
       </div>
 
-      {/* Paginação */}
+      {/* Pagina├º├úo */}
       {dados && dados.paginas > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Página {dados.pagina} de {dados.paginas}
+            P├ígina {dados.pagina} de {dados.paginas}
           </p>
           <div className="flex gap-2">
             <Button
@@ -271,7 +271,7 @@ export default function LogsPage() {
               size="sm"
               onClick={() => setPagina((p) => Math.max(1, p - 1))}
               disabled={dados.pagina <= 1 || loading}
-              aria-label="Página anterior"
+              aria-label="P├ígina anterior"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -280,7 +280,7 @@ export default function LogsPage() {
               size="sm"
               onClick={() => setPagina((p) => Math.min(dados.paginas, p + 1))}
               disabled={dados.pagina >= dados.paginas || loading}
-              aria-label="Próxima página"
+              aria-label="Pr├│xima p├ígina"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

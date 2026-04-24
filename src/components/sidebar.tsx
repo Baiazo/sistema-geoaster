@@ -18,7 +18,6 @@ import {
   ChevronRight,
   Moon,
   Sun,
-  BarChart2,
   UsersRound,
   X,
   ShieldAlert,
@@ -48,9 +47,6 @@ const navItems: NavItem[] = [
   { href: "/dashboard/processos", label: "Processos", icon: FileText, permissao: "verProcessos" },
   { href: "/dashboard/documentos", label: "Documentos", icon: FolderOpen, permissao: "verDocumentos" },
   { href: "/dashboard/imoveis", label: "Imóveis", icon: Building2, permissao: "verImoveis", apenasSetor: "IMOVEIS" },
-  { href: "/dashboard/colaboradores", label: "Colaboradores", icon: Users, permissao: "verColaboradores" },
-  { href: "/dashboard/equipes", label: "Equipes", icon: UsersRound, permissao: "verEquipes" },
-  { href: "/dashboard/graficos", label: "Gráficos", icon: BarChart2, permissao: null },
 ];
 
 interface SidebarProps {
@@ -150,34 +146,19 @@ export function Sidebar({ usuario, permissoes, setorAtivo, setores, isOpen = fal
           })}
 
         {usuario.perfilAcesso === "ADMIN" && (
-          <>
-            <Link
-              href="/dashboard/usuarios"
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-                pathname.startsWith("/dashboard/usuarios")
-                  ? cn(cfg.activeBg, cfg.activeText, "shadow-sm")
-                  : "text-gray-400 hover:bg-gray-700 hover:text-white"
-              )}
-            >
-              <Settings className="h-4 w-4 shrink-0" />
-              <span>Usuários</span>
-            </Link>
-            <Link
-              href="/dashboard/admin/logs"
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-                pathname.startsWith("/dashboard/admin/logs")
-                  ? cn(cfg.activeBg, cfg.activeText, "shadow-sm")
-                  : "text-gray-400 hover:bg-gray-700 hover:text-white"
-              )}
-            >
-              <ShieldAlert className="h-4 w-4 shrink-0" />
-              <span>Auditoria</span>
-            </Link>
-          </>
+          <Link
+            href="/dashboard/usuarios"
+            onClick={handleNavClick}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
+              pathname.startsWith("/dashboard/usuarios")
+                ? cn(cfg.activeBg, cfg.activeText, "shadow-sm")
+                : "text-gray-400 hover:bg-gray-700 hover:text-white"
+            )}
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            <span>Usuários</span>
+          </Link>
         )}
       </nav>
 
