@@ -204,6 +204,7 @@ model Orcamento {
   observacoes        String?
   status             StatusOrcamento @default(PENDENTE)
   motivoRejeicao     String?
+  atividades         Json?
   processoId         String?         @unique
   usuarioId          String?
   createdAt          DateTime        @default(now())

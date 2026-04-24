@@ -20,9 +20,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/empty-state";
 import { StatusBadge } from "@/components/status-badge";
 import {
-  Plus, Search, Eye, Loader2, FileSignature, Lock, CheckCircle2, XCircle,
+  Plus, Search, Eye, Loader2, FileSignature, Lock, CheckCircle2, XCircle, X,
 } from "lucide-react";
 import { usePermissoes } from "@/contexts/permissoes-context";
+import { LISTA_ATIVIDADES_GEO } from "@/lib/atividades-geo";
 
 interface Orcamento {
   id: string;
@@ -126,6 +127,8 @@ export default function OrcamentosPage() {
   const [erros, setErros] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [setorAtivo, setSetorAtivo] = useState<string>("");
+  const [atividadesSelecionadas, setAtividadesSelecionadas] = useState<{ key: string; label: string; descricao: string }[]>([]);
+  const [novaAtividade, setNovaAtividade] = useState<string>("");
 
   const tiposServico = setorAtivo && TIPOS_SERVICO_POR_SETOR[setorAtivo]
     ? TIPOS_SERVICO_POR_SETOR[setorAtivo]
@@ -175,12 +178,32 @@ export default function OrcamentosPage() {
     }
   }, [form.clienteId]);
 
+  const isGeo = setorAtivo === "GEO";
+
   function validar(): boolean {
     const novosErros: Record<string, string> = {};
     if (!form.clienteId) novosErros.clienteId = "Selecione um cliente";
-    if (!form.tipoServico) novosErros.tipoServico = "Selecione o tipo de serviço";
+    if (isGeo) {
+      if (atividadesSelecionadas.length === 0)
+        novosErros.atividades = "Adicione pelo menos uma atividade";
+    } else {
+      if (!form.tipoServico) novosErros.tipoServico = "Selecione o tipo de serviço";
+    }
     setErros(novosErros);
     return Object.keys(novosErros).length === 0;
+  }
+
+  function handleAdicionarAtividade() {
+    if (!novaAtividade) return;
+    const ativ = LISTA_ATIVIDADES_GEO.find((a) => a.key === novaAtividade);
+    if (!ativ || atividadesSelecionadas.some((a) => a.key === novaAtividade)) return;
+    setAtividadesSelecionadas((prev) => [...prev, ativ]);
+    setNovaAtividade("");
+    if (erros.atividades) setErros((e) => ({ ...e, atividades: "" }));
+  }
+
+  function handleRemoverAtividade(key: string) {
+    setAtividadesSelecionadas((prev) => prev.filter((a) => a.key !== key));
   }
 
   async function handleCriar(e: React.FormEvent) {
@@ -188,11 +211,20 @@ export default function OrcamentosPage() {
     if (!validar()) return;
     setSaving(true);
     try {
+      const tipoServico = isGeo
+        ? atividadesSelecionadas[0]?.label ?? "Serviços técnicos"
+        : form.tipoServico;
+      const atividades = isGeo
+        ? atividadesSelecionadas.map((a) => a.descricao)
+        : undefined;
+
       const res = await fetch("/api/orcamentos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          tipoServico,
+          atividades,
           propriedadeId: form.propriedadeId || undefined,
           valor: parseMoedaInput(form.valor),
           prazoExecucaoDias: form.prazoExecucaoDias ? Number(form.prazoExecucaoDias) : undefined,
@@ -204,6 +236,8 @@ export default function OrcamentosPage() {
       toast.success(`Orçamento criado! Protocolo: ${data.protocolo}`);
       setDialogOpen(false);
       setForm(emptyForm);
+      setAtividadesSelecionadas([]);
+      setNovaAtividade("");
       setErros({});
       fetchOrcamentos();
     } finally {
@@ -420,7 +454,10 @@ export default function OrcamentosPage() {
       </div>
 
       {/* Dialog: Novo orçamento */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        setDialogOpen(open);
+        if (!open) { setAtividadesSelecionadas([]); setNovaAtividade(""); setErros({}); }
+      }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Orçamento</DialogTitle>
@@ -457,32 +494,82 @@ export default function OrcamentosPage() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="orc-tipo">Tipo de Serviço *</Label>
-              <Select
-                value={form.tipoServico}
-                onValueChange={(v) => v !== null && setForm((f) => ({ ...f, tipoServico: v }))}
-              >
-                <SelectTrigger id="orc-tipo" aria-invalid={!!erros.tipoServico}>
-                  <SelectValue placeholder="Selecione o serviço" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tiposServico.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {erros.tipoServico && <p className="text-sm text-red-500">{erros.tipoServico}</p>}
-            </div>
+            {isGeo ? (
+              <div className="space-y-1.5">
+                <Label>Atividades *</Label>
+                <div className="flex gap-2">
+                  <Select value={novaAtividade} onValueChange={(v) => v && setNovaAtividade(v)}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Selecionar atividade..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LISTA_ATIVIDADES_GEO
+                        .filter((a) => !atividadesSelecionadas.some((s) => s.key === a.key))
+                        .map((a) => (
+                          <SelectItem key={a.key} value={a.key}>{a.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAdicionarAtividade}
+                    disabled={!novaAtividade}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  </Button>
+                </div>
+                {atividadesSelecionadas.length > 0 && (
+                  <div className="space-y-1.5 mt-1">
+                    {atividadesSelecionadas.map((a, i) => (
+                      <div
+                        key={a.key}
+                        className="flex items-center justify-between gap-2 px-3 py-2 bg-muted rounded-md text-sm"
+                      >
+                        <span><span className="font-medium text-muted-foreground mr-1">{i + 1}.</span>{a.label}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoverAtividade(a.key)}
+                          className="shrink-0 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {erros.atividades && <p className="text-sm text-red-500">{erros.atividades}</p>}
+              </div>
+            ) : (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="orc-tipo">Tipo de Serviço *</Label>
+                  <Select
+                    value={form.tipoServico}
+                    onValueChange={(v) => v !== null && setForm((f) => ({ ...f, tipoServico: v }))}
+                  >
+                    <SelectTrigger id="orc-tipo" aria-invalid={!!erros.tipoServico}>
+                      <SelectValue placeholder="Selecione o serviço" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiposServico.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {erros.tipoServico && <p className="text-sm text-red-500">{erros.tipoServico}</p>}
+                </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="orc-descricao">Descrição / escopo</Label>
-              <Textarea
-                id="orc-descricao"
-                value={form.descricao}
-                onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
-                rows={3}
-                placeholder="Detalhe o que será entregue no serviço..."
-              />
-            </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="orc-descricao">Descrição / escopo</Label>
+                  <Textarea
+                    id="orc-descricao"
+                    value={form.descricao}
+                    onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
+                    rows={3}
+                    placeholder="Detalhe o que será entregue no serviço..."
+                  />
+                </div>
+              </>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
