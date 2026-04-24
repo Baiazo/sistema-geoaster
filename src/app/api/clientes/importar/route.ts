@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getPermissoesEfetivas } from "@/lib/permissoes";
 import { registrarLog } from "@/lib/auditoria";
+import { TODOS_SETORES } from "@/lib/setores";
+import type { Setor } from "@/lib/setores";
 
 interface ClienteImport {
   nome: string;
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
     const perm = getPermissoesEfetivas(session.perfilAcesso, session.permissoes);
     if (!perm.cadastrarClientes) return Response.json({ error: "Sem permissão" }, { status: 403 });
 
-    const { clientes }: { clientes: ClienteImport[] } = await request.json();
+    const { clientes, setores }: { clientes: ClienteImport[]; setores?: unknown[] } = await request.json();
 
     if (!Array.isArray(clientes) || clientes.length === 0) {
       return Response.json({ error: "Nenhum cliente enviado" }, { status: 400 });
@@ -32,6 +34,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Valida cada linha antes do insert em massa.
+    const setoresFinal: Setor[] = Array.isArray(setores)
+      ? setores.filter((s): s is Setor => TODOS_SETORES.includes(s as Setor))
+      : [];
+
     const normalizados = clientes.map((c) => {
       const nome = typeof c.nome === "string" ? c.nome.trim() : "";
       const cpfCnpj = typeof c.cpfCnpj === "string" ? c.cpfCnpj.trim() : "";
@@ -43,6 +49,7 @@ export async function POST(request: NextRequest) {
         cidade: typeof c.cidade === "string" ? c.cidade.trim() || null : null,
         endereco: typeof c.endereco === "string" ? c.endereco.trim() || null : null,
         observacoes: typeof c.observacoes === "string" ? c.observacoes.trim() || null : null,
+        setores: setoresFinal,
       };
     });
 

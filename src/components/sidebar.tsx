@@ -18,7 +18,6 @@ import {
   ChevronRight,
   Moon,
   Sun,
-  BarChart2,
   UsersRound,
   X,
   ShieldAlert,
@@ -147,34 +146,19 @@ export function Sidebar({ usuario, permissoes, setorAtivo, setores, isOpen = fal
           })}
 
         {usuario.perfilAcesso === "ADMIN" && (
-          <>
-            <Link
-              href="/dashboard/usuarios"
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-                pathname.startsWith("/dashboard/usuarios")
-                  ? cn(cfg.activeBg, cfg.activeText, "shadow-sm")
-                  : "text-gray-400 hover:bg-gray-700 hover:text-white"
-              )}
-            >
-              <Settings className="h-4 w-4 shrink-0" />
-              <span>Usuários</span>
-            </Link>
-            <Link
-              href="/dashboard/gestao"
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
-                pathname.startsWith("/dashboard/gestao")
-                  ? cn(cfg.activeBg, cfg.activeText, "shadow-sm")
-                  : "text-gray-400 hover:bg-gray-700 hover:text-white"
-              )}
-            >
-              <BarChart2 className="h-4 w-4 shrink-0" />
-              <span>Gestão</span>
-            </Link>
-          </>
+          <Link
+            href="/dashboard/usuarios"
+            onClick={handleNavClick}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
+              pathname.startsWith("/dashboard/usuarios")
+                ? cn(cfg.activeBg, cfg.activeText, "shadow-sm")
+                : "text-gray-400 hover:bg-gray-700 hover:text-white"
+            )}
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            <span>Usuários</span>
+          </Link>
         )}
       </nav>
 
