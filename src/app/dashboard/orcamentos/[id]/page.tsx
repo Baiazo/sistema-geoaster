@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ export default async function OrcamentoDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await getSession();
   const orcamento = await prisma.orcamento.findUnique({
     where: { id },
     include: {
@@ -37,6 +39,12 @@ export default async function OrcamentoDetailPage({
 
   if (!orcamento) notFound();
 
+  const atividadesRaw = orcamento.atividades;
+  const atividades =
+    Array.isArray(atividadesRaw) && atividadesRaw.every((a) => typeof a === "string")
+      ? (atividadesRaw as string[])
+      : null;
+
   const pdfDados = {
     protocolo: orcamento.protocolo,
     tipoServico: orcamento.tipoServico,
@@ -48,6 +56,8 @@ export default async function OrcamentoDetailPage({
     validadeAte: orcamento.validadeAte ? orcamento.validadeAte.toISOString() : null,
     observacoes: orcamento.observacoes,
     createdAt: orcamento.createdAt.toISOString(),
+    setor: session?.setorAtivo ?? null,
+    atividades,
     cliente: {
       nome: orcamento.cliente.nome,
       cpfCnpj: orcamento.cliente.cpfCnpj,
@@ -173,6 +183,18 @@ export default async function OrcamentoDetailPage({
           <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Proposta</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
+          {atividades && atividades.length > 0 ? (
+            <div className="pt-1">
+              <p className="font-medium text-muted-foreground mb-2">Atividades:</p>
+              <ol className="space-y-1 list-decimal list-inside">
+                {atividades.map((desc, i) => (
+                  <li key={i} className="text-sm">{desc}</li>
+                ))}
+              </ol>
+            </div>
+          ) : (
+            <div><span className="font-medium text-muted-foreground">Tipo de serviço: </span>{orcamento.tipoServico}</div>
+          )}
           <div><span className="font-medium text-muted-foreground">Valor: </span>{formatarMoeda(orcamento.valor)}</div>
           {orcamento.condicoesPagamento && (
             <div><span className="font-medium text-muted-foreground">Pagamento: </span>{orcamento.condicoesPagamento}</div>
@@ -183,7 +205,7 @@ export default async function OrcamentoDetailPage({
           {orcamento.validadeAte && (
             <div><span className="font-medium text-muted-foreground">Válido até: </span>{formatarData(orcamento.validadeAte)}</div>
           )}
-          {orcamento.descricao && (
+          {!atividades && orcamento.descricao && (
             <div className="pt-2">
               <p className="font-medium text-muted-foreground mb-1">Descrição:</p>
               <p className="whitespace-pre-wrap">{orcamento.descricao}</p>

@@ -69,11 +69,17 @@ export async function POST(request: NextRequest) {
       prazoExecucaoDias,
       validadeAte,
       observacoes,
+      atividades,
     } = body;
 
     if (!clienteId || !tipoServico) {
       return Response.json({ error: "Cliente e tipo de serviço são obrigatórios" }, { status: 400 });
     }
+
+    const atividadesValidas =
+      Array.isArray(atividades) && atividades.every((a) => typeof a === "string")
+        ? atividades
+        : null;
 
     const protocolo = await gerarProtocolo();
 
@@ -92,6 +98,7 @@ export async function POST(request: NextRequest) {
             : null,
         validadeAte: validadeAte ? new Date(validadeAte) : null,
         observacoes: observacoes || null,
+        atividades: atividadesValidas ?? undefined,
         usuarioId: session.id,
       },
       include: {

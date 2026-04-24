@@ -65,6 +65,7 @@ export async function PUT(
       observacoes,
       status,
       motivoRejeicao,
+      atividades,
     } = body;
 
     if (status !== undefined && !STATUS_VALIDOS.has(status)) {
@@ -103,6 +104,14 @@ export async function PUT(
           ? { validadeAte: validadeAte ? new Date(validadeAte) : null }
           : {}),
         ...(observacoes !== undefined ? { observacoes: observacoes || null } : {}),
+        ...(atividades !== undefined
+          ? {
+              atividades:
+                Array.isArray(atividades) && atividades.every((a: unknown) => typeof a === "string")
+                  ? atividades
+                  : null,
+            }
+          : {}),
         ...(status ? { status: status as StatusOrcamento } : {}),
         ...(status === "REJEITADO" ? { motivoRejeicao: motivoTrim } : {}),
       },
