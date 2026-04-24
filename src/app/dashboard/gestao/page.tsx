@@ -8,21 +8,21 @@ import {
 
 const modulos = [
   {
-    href: "/dashboard/colaboradores",
+    href: "/dashboard/gestao/colaboradores",
     label: "Colaboradores",
     descricao: "Gerenciar colaboradores e cargos",
     icon: Users,
     cor: "bg-slate-500",
   },
   {
-    href: "/dashboard/equipes",
+    href: "/dashboard/gestao/equipes",
     label: "Equipes",
     descricao: "Gerenciar equipes e responsáveis",
     icon: UsersRound,
     cor: "bg-slate-500",
   },
   {
-    href: "/dashboard/admin/logs",
+    href: "/dashboard/gestao/auditoria",
     label: "Auditoria",
     descricao: "Logs de auditoria do sistema",
     icon: ShieldAlert,
